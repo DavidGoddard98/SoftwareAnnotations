@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+
+   <extension
+         point="net.sourceforge.plantuml.eclipse.diagramTextProvider">
+
+      <diagramTextProvider
+            id="net.sourceforge.plantuml.uml2.Uml2ClassDiagramTextProvider"
+            providerClass="net.sourceforge.plantuml.uml2.Uml2ClassDiagramTextProvider"
+            label="Class diagrams generated from UML2 models"
+            >
+      </diagramTextProvider>
+   </extension>
+
+</plugin>

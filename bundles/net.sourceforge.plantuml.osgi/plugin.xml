@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+
+   <extension
+         point="net.sourceforge.plantuml.eclipse.diagramTextProvider">
+
+      <diagramTextProvider
+      	id="net.sourceforge.plantuml.osgi.ManifestDiagramTextProvider"
+      	providerClass="net.sourceforge.plantuml.osgi.ManifestDiagramTextProvider"
+      	label="Bundle dependency diagrams generated from OSGi manifests"
+      	>
+      </diagramTextProvider>
+      <diagramTextProvider
+        id="net.sourceforge.plantuml.osgi.OsgiComponentDiagramTextProvider"
+        providerClass="net.sourceforge.plantuml.osgi.OsgiComponentDiagramTextProvider"
+      	label="Component diagrams generated from OSGi manifests and component XML files"
+        >
+      </diagramTextProvider>
+   </extension>
+
+</plugin>
