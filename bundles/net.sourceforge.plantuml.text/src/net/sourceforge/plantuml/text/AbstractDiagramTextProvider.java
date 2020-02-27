@@ -16,7 +16,7 @@ public abstract class AbstractDiagramTextProvider implements DiagramTextProvider
 
 	public AbstractDiagramTextProvider() {
 	}
-
+	
 	public AbstractDiagramTextProvider(final Class<?> partType) {
 		if (partType == null);
 		else if (IViewPart.class.isAssignableFrom(partType)) {

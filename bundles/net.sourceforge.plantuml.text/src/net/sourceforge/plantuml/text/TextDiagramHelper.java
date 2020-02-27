@@ -35,7 +35,11 @@ public class TextDiagramHelper {
 	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart, final Map<String, Object> markerAttributes) {
 		final boolean includeStart = prefix.startsWith("@"), includeEnd = suffix.startsWith("@");
 		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
+		
+		
+		System.out.println("getDiagramTextLines");
 		try {
+
 			// search backward and forward start and end
 			IRegion start = finder.find(selectionStart, prefixRegex, false, true, false, true);
 			// if not start or end is before start, we must search backward
@@ -50,15 +54,48 @@ public class TextDiagramHelper {
 			}
 			if (start != null) {
 				final int startOffset = start.getOffset(), startLine = document.getLineOfOffset(startOffset + (includeStart ? 0 : start.getLength()));
+
 				final IRegion end = finder.find(startOffset + start.getLength(), suffixRegex, true, true, false, true);
 				if (end != null && end.getOffset() >= selectionStart) {
+					int selectedLineNum = document.getLineOfOffset(selectionStart);
+					String selectedLine = document.get(document.getLineOffset(selectedLineNum), document.getLineLength(selectedLineNum)).trim();
+					boolean transitionSelected = false;
+					boolean stateSelected = false;
+					int indexOfTrans = 0;
+					String test ="";
+					String colorState = "";
+					char tmp = 'c';
+			
+					for (int i=0; i< selectedLine.length(); i++) {
+						if (selectedLine.charAt(i) == ' ' && selectedLine.charAt(i + 1) == ':') {
+							colorState = "state " + selectedLine.substring(0, i) + " #green";
+							stateSelected = true;
+						}
+						char c = selectedLine.charAt(i);
+						if (c == '>' && tmp == '-') {
+							transitionSelected = true;
+							indexOfTrans = selectedLine.indexOf('-');
+							test = selectedLine.substring(0,indexOfTrans) + "-[thickness=5,#blue]" + selectedLine.substring(indexOfTrans+1, selectedLine.length());
+						}
+						
+						tmp = c;
+					}
+
 					final int endOffset = end.getOffset() + end.getLength();
 					//					String linePrefix = document.get(startLinePos, startOffset - startLinePos).trim();
 					final StringBuilder result = new StringBuilder();
 					final int maxLine = Math.min(document.getLineOfOffset(endOffset) + (includeEnd ? 1 : 0), document.getNumberOfLines());
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
-						result.append(line);
+						if (transitionSelected == true && selectedLineNum == lineNum) 
+							result.append(test);
+						else if (stateSelected == true && selectedLineNum == lineNum) {
+							result.append(colorState);
+							result.append("\n");
+
+							result.append(line);
+						} else
+							result.append(line);
 						if (! line.endsWith("\n")) {
 							result.append("\n");
 						}
@@ -71,12 +108,14 @@ public class TextDiagramHelper {
 		}
 		return null;
 	}
-
+	
 	public String getDiagramText(final CharSequence lines) {
 		return getDiagramText(new StringBuilder(lines.toString()));
 	}
 
 	public String getDiagramText(final StringBuilder lines) {
+		System.out.println("getDiagramText - line 82");
+		
 		final int prefixPos = lines.indexOf(prefix);
 		int start = Math.max(prefixPos, 0);
 		final int suffixPos = lines.lastIndexOf(suffix);
@@ -108,6 +147,7 @@ public class TextDiagramHelper {
 	}
 
 	public String getDiagramText(final IFile file) {
+
 		final IMarker marker = PlantumlUtil.getPlantUmlMarker(file, false);
 		int startOffset = marker.getAttribute(IMarker.CHAR_START, 0);
 		StringBuilder builder = null;
@@ -143,6 +183,7 @@ public class TextDiagramHelper {
 	}
 
 	public Iterator<ISelection> getDiagramText(final IDocument document) {
+
 		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
 		int selectionStart = 0;
 		final Collection<ISelection> selections = new ArrayList<ISelection>();

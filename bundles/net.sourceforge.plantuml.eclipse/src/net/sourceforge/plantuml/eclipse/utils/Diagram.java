@@ -87,12 +87,12 @@ public class Diagram {
 	
 	
 
-	fff
 	private static ImageData getImage(final String textDiagram, final int imageNum, final Collection<LinkData> links) {
 		setGraphvizPath();
 		ImageData imageData = null;
 		try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
 			if (DEBUG)
+				  System.out.println("Text diagram description");
 			      System.out.println(textDiagram);
 			// image generation
 			final SourceStringReader reader = new SourceStringReader(textDiagram);
