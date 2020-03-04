@@ -79,6 +79,7 @@ public class PlantUmlView extends AbstractDiagramSourceView implements ILinkSupp
 		// Display of the view.
 		menuSupport = new MenuSupport();
 		composite = parent;
+		
 		createImageControls(0);
 		diagram = new Diagram();
 		addListeners();

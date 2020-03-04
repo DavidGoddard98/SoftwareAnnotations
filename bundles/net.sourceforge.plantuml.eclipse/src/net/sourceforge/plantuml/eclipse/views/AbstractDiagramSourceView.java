@@ -6,6 +6,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.eclipse.core.resources.IMarker;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.jface.action.Action;
@@ -20,8 +25,10 @@ import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.ISelectionProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IFileEditorInput;
@@ -85,6 +92,22 @@ public abstract class AbstractDiagramSourceView extends ViewPart {
 
 	@Override
 	public void createPartControl(final Composite parent) {
+		Text textArea = new Text(parent, SWT.MULTI | SWT.BORDER);
+
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IResource root = workspace.getRoot();
+		StringBuilder diagramMarkers = new StringBuilder();
+		textArea.setText("");
+		try {
+			IMarker[] markers = root.findMarkers(IMarker.TASK, true, IResource.DEPTH_INFINITE);
+			for (IMarker aMarker : markers) {
+				diagramMarkers.append(aMarker.getAttribute(IMarker.MESSAGE, " "));
+				diagramMarkers.append("\n");
+			}
+		} catch (CoreException e) {
+			System.out.println("Couldnt find all markers to print to view");
+		}
+		textArea.setText(diagramMarkers.toString());
 		this.parent = parent;
 		if (isLinkedToActivePart()) {
 			registerListeners();

@@ -66,7 +66,7 @@ public class TextDiagramHelper {
 
 				IMarker marker = root.createMarker(IMarker.TASK);
 				marker.setAttribute(IMarker.MESSAGE, theLine);
-				marker.setAttribute(IMarker.LINE_NUMBER, lineNum);
+				marker.setAttribute(IMarker.LINE_NUMBER, lineNum + 1);
 				marker.setAttribute(IMarker.SOURCE_ID, path.toString());
 				marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
 			}
