@@ -55,7 +55,7 @@ public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextPro
 		final ITextEditor textEditor = (ITextEditor) editorPart;
 		final IDocument document = textEditor.getDocumentProvider().getDocument(editorInput);
 		final int selectionStart = ((ITextSelection) (selection != null ? selection : textEditor.getSelectionProvider().getSelection())).getOffset();
-		return getTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes);
+		return getTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes, editorInput);
 	}
 
 	public String getDiagramText(final CharSequence lines) {

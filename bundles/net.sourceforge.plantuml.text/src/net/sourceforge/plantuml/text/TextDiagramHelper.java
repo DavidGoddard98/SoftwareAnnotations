@@ -9,12 +9,15 @@ import java.util.Scanner;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.FindReplaceDocumentAdapter;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IFileEditorInput;
 
 import net.sourceforge.plantuml.eclipse.utils.PlantumlConstants;
 import net.sourceforge.plantuml.eclipse.utils.PlantumlUtil;
@@ -31,12 +34,26 @@ public class TextDiagramHelper {
 		this.suffix = suffix;
 		this.suffixRegex = suffixRegex;
 	}
+	
+	/**
+	 * @startuml
 
-	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart, final Map<String, Object> markerAttributes) {
+[*] --> State1
+State1 --> [*]
+State1 : this is a string
+State1 : this is another string
+
+State1 -> State2
+State2 --> [*]
+
+@enduml
+	 */
+	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart, final Map<String, Object> markerAttributes, IEditorInput editorInput) {
 		final boolean includeStart = prefix.startsWith("@"), includeEnd = suffix.startsWith("@");
 		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
-		
-		
+		IPath path = ((IFileEditorInput)editorInput).getFile().getFullPath();
+		System.out.println("PATHHH" + path.toString());
+		System.out.println("Path file" + path.toFile().toString());
 		System.out.println("getDiagramTextLines");
 		try {
 
