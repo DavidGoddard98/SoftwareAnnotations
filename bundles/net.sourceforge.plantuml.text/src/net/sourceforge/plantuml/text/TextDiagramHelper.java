@@ -8,8 +8,14 @@ import java.util.Scanner;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.ISafeRunnable;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.FindReplaceDocumentAdapter;
 import org.eclipse.jface.text.IDocument;
@@ -21,11 +27,11 @@ import org.eclipse.ui.IFileEditorInput;
 
 import net.sourceforge.plantuml.eclipse.utils.PlantumlConstants;
 import net.sourceforge.plantuml.eclipse.utils.PlantumlUtil;
-
 public class TextDiagramHelper {
 
 	private final String prefix, prefixRegex;
 	private final String suffix, suffixRegex;
+	IMarker[] resourceMarkers;
 
 	public TextDiagramHelper(final String prefix, final String prefixRegex, final String suffix, final String suffixRegex) {
 		super();
@@ -35,26 +41,49 @@ public class TextDiagramHelper {
 		this.suffixRegex = suffixRegex;
 	}
 	
-	/**
-	 * @startuml
+	private boolean validateLine(String theLine) {
+		if (theLine.isEmpty()) {
+			return false;
+		} else if (theLine.contains("@enduml")) {
+			return false;
+		} else if (theLine.contains("@startuml")) {
+			return false;
+		} else
+			return true;
+	}
+	
+	
+	private void addTask(String theLine, int lineNum, IPath path) {
+		// use Platform.run to batch the marker creation and attribute setting
+		String className = path.getDevice();
+		if (!validateLine(theLine))
+			return;
+		Platform.run(new ISafeRunnable() {
+			public void run() throws Exception {
+				IWorkspace workspace = ResourcesPlugin.getWorkspace();
+				IWorkspaceRoot wsRoot = workspace.getRoot();
+				IResource root = wsRoot.findMember(path);
 
-[*] --> State1
-State1 --> [*]
-State1 : this is a string
-State1 : this is another string
-
-State1 -> State2
-State2 --> [*]
-
-@enduml
-	 */
+				IMarker marker = root.createMarker(IMarker.TASK);
+				marker.setAttribute(IMarker.MESSAGE, theLine);
+				marker.setAttribute(IMarker.LINE_NUMBER, lineNum);
+				marker.setAttribute(IMarker.SOURCE_ID, path.toString());
+				marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
+			}
+		});
+		
+	}
+	
+	
 	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart, final Map<String, Object> markerAttributes, IEditorInput editorInput) {
 		final boolean includeStart = prefix.startsWith("@"), includeEnd = suffix.startsWith("@");
 		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
 		IPath path = ((IFileEditorInput)editorInput).getFile().getFullPath();
-		System.out.println("PATHHH" + path.toString());
-		System.out.println("Path file" + path.toFile().toString());
-		System.out.println("getDiagramTextLines");
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IWorkspaceRoot wsRoot = workspace.getRoot();
+		IResource root = wsRoot.findMember(path);
+		
+		
 		try {
 
 			// search backward and forward start and end
@@ -70,8 +99,11 @@ State2 --> [*]
 				}
 			}
 			if (start != null) {
+				
 				final int startOffset = start.getOffset(), startLine = document.getLineOfOffset(startOffset + (includeStart ? 0 : start.getLength()));
-
+				
+				
+				
 				final IRegion end = finder.find(startOffset + start.getLength(), suffixRegex, true, true, false, true);
 				if (end != null && end.getOffset() >= selectionStart) {
 					int selectedLineNum = document.getLineOfOffset(selectionStart);
@@ -102,8 +134,27 @@ State2 --> [*]
 					//					String linePrefix = document.get(startLinePos, startOffset - startLinePos).trim();
 					final StringBuilder result = new StringBuilder();
 					final int maxLine = Math.min(document.getLineOfOffset(endOffset) + (includeEnd ? 1 : 0), document.getNumberOfLines());
+					boolean toggle = true;
+					
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
+						if (toggle) {
+							try {
+								if (resourceMarkers != null) {
+									for (IMarker aMarker : resourceMarkers) {
+										aMarker.delete();
+									}
+								}
+								toggle = true;
+
+							} catch  (CoreException e) {
+								System.out.println("Error deleting markers");
+							}
+						}
+						
+					
+						
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
+						addTask(line, lineNum, path);
 						if (transitionSelected == true && selectedLineNum == lineNum) 
 							result.append(test);
 						else if (stateSelected == true && selectedLineNum == lineNum) {
@@ -118,6 +169,12 @@ State2 --> [*]
 						}
 					}
 					markerAttributes.put(IMarker.CHAR_START, start.getOffset());
+					try {
+						
+						resourceMarkers = root.findMarkers(IMarker.MARKER, true, IResource.DEPTH_INFINITE);
+					} catch (CoreException e) {
+						System.out.println("Error finding markers");
+					}
 					return result;
 				}
 			}
