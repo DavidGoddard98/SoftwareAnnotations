@@ -92,22 +92,7 @@ public abstract class AbstractDiagramSourceView extends ViewPart {
 
 	@Override
 	public void createPartControl(final Composite parent) {
-		Text textArea = new Text(parent, SWT.MULTI | SWT.BORDER);
-
-		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		IResource root = workspace.getRoot();
-		StringBuilder diagramMarkers = new StringBuilder();
-		textArea.setText("");
-		try {
-			IMarker[] markers = root.findMarkers(IMarker.TASK, true, IResource.DEPTH_INFINITE);
-			for (IMarker aMarker : markers) {
-				diagramMarkers.append(aMarker.getAttribute(IMarker.MESSAGE, " "));
-				diagramMarkers.append("\n");
-			}
-		} catch (CoreException e) {
-			System.out.println("Couldnt find all markers to print to view");
-		}
-		textArea.setText(diagramMarkers.toString());
+		
 		this.parent = parent;
 		if (isLinkedToActivePart()) {
 			registerListeners();

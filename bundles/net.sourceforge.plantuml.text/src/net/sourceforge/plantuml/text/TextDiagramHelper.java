@@ -2,7 +2,9 @@ package net.sourceforge.plantuml.text;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -31,7 +33,9 @@ public class TextDiagramHelper {
 
 	private final String prefix, prefixRegex;
 	private final String suffix, suffixRegex;
-	IMarker[] resourceMarkers;
+    HashSet<String> plantMarkerKey = new HashSet<String>(); 
+    boolean toggle = true;
+
 
 	public TextDiagramHelper(final String prefix, final String prefixRegex, final String suffix, final String suffixRegex) {
 		super();
@@ -40,6 +44,8 @@ public class TextDiagramHelper {
 		this.suffix = suffix;
 		this.suffixRegex = suffixRegex;
 	}
+	
+
 	
 	private boolean validateLine(String theLine) {
 		if (theLine.isEmpty()) {
@@ -51,28 +57,83 @@ public class TextDiagramHelper {
 		} else
 			return true;
 	}
+
+
+
+	IMarker[] allMarkers;
+	private void initializeKeys(IResource resource, IPath path, IDocument document ) {
+		try {
+			allMarkers = resource.findMarkers(IMarker.BOOKMARK, false, IResource.DEPTH_ZERO);
+			
+			for (IMarker aMarker : allMarkers) {
+
+				String message = aMarker.getAttribute(IMarker.MESSAGE, "");
+				String subString = message.substring(0, 3);
+
+				if (subString.equals("FSM") ) {
+					String theLine = message.substring(5, message.length());
+					int lineNum = aMarker.getAttribute(IMarker.LINE_NUMBER, 0 );
+					String sameLineInDoc = document.get(document.getLineOffset(lineNum-1), document.getLineLength(lineNum-1)).trim();
+					
+					String className = path.toFile().getName();
+					String key = className + theLine + String.valueOf(lineNum);
+					
+					if (sameLineInDoc.equals(theLine) == false) {
+						System.out.println("deleting key an marker");
+						aMarker.delete();
+						plantMarkerKey.remove(key);
+						continue;
+					}
+					if (plantMarkerKey.contains(key)) {
+						continue;
+					}
+					plantMarkerKey.add(key);
+					
+					System.out.println("initialized keys for file: " + className + "Key = :" + key);
+				}
+			}
+		} catch (CoreException e) {
+			System.out.println("Failed to initialise keys");
+		} catch (BadLocationException e) {
+			System.out.println("Couldnt find line in docuent");
+		}
+	}
+	
+
+	//TODO: onStartup initialize keylist with FSM bookmarks
+	//Delete keys on marker deletion?
+	private void createKey(String theLine, int lineNum, IPath path, boolean toggle) {
+		if (!validateLine(theLine))
+			return;
+		String className = path.toFile().getName();
+		String key = className + theLine + String.valueOf(lineNum + 1);
+		if (plantMarkerKey.contains(key)) {
+			//System.out.println("Key exists: " + key);
+			return;
+		}
+		plantMarkerKey.add(key);
+		addTask(theLine, lineNum, path);
+	}
 	
 	
 	private void addTask(String theLine, int lineNum, IPath path) {
-		// use Platform.run to batch the marker creation and attribute setting
-		String className = path.getDevice();
-		if (!validateLine(theLine))
-			return;
+		// use Platform.run to batch the marker creation and attribute setting		
+		
 		Platform.run(new ISafeRunnable() {
 			public void run() throws Exception {
 				IWorkspace workspace = ResourcesPlugin.getWorkspace();
 				IWorkspaceRoot wsRoot = workspace.getRoot();
 				IResource root = wsRoot.findMember(path);
 
-				IMarker marker = root.createMarker(IMarker.TASK);
-				marker.setAttribute(IMarker.MESSAGE, theLine);
+				IMarker marker = root.createMarker(IMarker.BOOKMARK);
+				marker.setAttribute(IMarker.MESSAGE, "FSM: " + theLine);
 				marker.setAttribute(IMarker.LINE_NUMBER, lineNum + 1);
 				marker.setAttribute(IMarker.SOURCE_ID, path.toString());
-				marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
 			}
 		});
 		
 	}
+	
 	
 	
 	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart, final Map<String, Object> markerAttributes, IEditorInput editorInput) {
@@ -82,7 +143,8 @@ public class TextDiagramHelper {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot wsRoot = workspace.getRoot();
 		IResource root = wsRoot.findMember(path);
-		
+		boolean toggle = true;
+		initializeKeys(root, path, document);
 		
 		try {
 
@@ -134,27 +196,11 @@ public class TextDiagramHelper {
 					//					String linePrefix = document.get(startLinePos, startOffset - startLinePos).trim();
 					final StringBuilder result = new StringBuilder();
 					final int maxLine = Math.min(document.getLineOfOffset(endOffset) + (includeEnd ? 1 : 0), document.getNumberOfLines());
-					boolean toggle = true;
-					
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
-						if (toggle) {
-							try {
-								if (resourceMarkers != null) {
-									for (IMarker aMarker : resourceMarkers) {
-										aMarker.delete();
-									}
-								}
-								toggle = true;
-
-							} catch  (CoreException e) {
-								System.out.println("Error deleting markers");
-							}
-						}
-						
+						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
+						createKey(line, lineNum, path, toggle);				
 					
 						
-						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
-						addTask(line, lineNum, path);
 						if (transitionSelected == true && selectedLineNum == lineNum) 
 							result.append(test);
 						else if (stateSelected == true && selectedLineNum == lineNum) {
@@ -169,12 +215,8 @@ public class TextDiagramHelper {
 						}
 					}
 					markerAttributes.put(IMarker.CHAR_START, start.getOffset());
-					try {
-						
-						resourceMarkers = root.findMarkers(IMarker.MARKER, true, IResource.DEPTH_INFINITE);
-					} catch (CoreException e) {
-						System.out.println("Error finding markers");
-					}
+					initializeKeys(root, path, document);
+
 					return result;
 				}
 			}
@@ -188,7 +230,6 @@ public class TextDiagramHelper {
 	}
 
 	public String getDiagramText(final StringBuilder lines) {
-		System.out.println("getDiagramText - line 82");
 		
 		final int prefixPos = lines.indexOf(prefix);
 		int start = Math.max(prefixPos, 0);
