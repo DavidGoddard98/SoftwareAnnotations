@@ -129,6 +129,7 @@ public class MarkerLinkOpener implements ILinkOpener {
 			IPath path = getPath(link);
 			IFile file = ResourcesPlugin.getWorkspace().getRoot().getFile(path);
 			marker = createMarker(link, file);
+			System.out.println("openlink");
 			IDE.openEditor(page, marker);
 		} catch (PartInitException e) {
 		} finally {

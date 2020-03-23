@@ -1,5 +1,7 @@
 package net.sourceforge.plantuml.text;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -7,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
@@ -29,24 +32,24 @@ import org.eclipse.ui.IFileEditorInput;
 
 import net.sourceforge.plantuml.eclipse.utils.PlantumlConstants;
 import net.sourceforge.plantuml.eclipse.utils.PlantumlUtil;
+
 public class TextDiagramHelper {
 
 	private final String prefix, prefixRegex;
 	private final String suffix, suffixRegex;
-    HashSet<String> plantMarkerKey = new HashSet<String>(); 
-    boolean toggle = true;
+	HashSet<String> plantMarkerKey = new HashSet<String>();
+	HashSet<String> diagramText = new HashSet<String>();
+	boolean toggle = true;
 
-
-	public TextDiagramHelper(final String prefix, final String prefixRegex, final String suffix, final String suffixRegex) {
+	public TextDiagramHelper(final String prefix, final String prefixRegex, final String suffix,
+			final String suffixRegex) {
 		super();
 		this.prefix = prefix;
 		this.prefixRegex = prefixRegex;
 		this.suffix = suffix;
 		this.suffixRegex = suffixRegex;
 	}
-	
 
-	
 	private boolean validateLine(String theLine) {
 		if (theLine.isEmpty()) {
 			return false;
@@ -59,25 +62,26 @@ public class TextDiagramHelper {
 	}
 
 
-
 	IMarker[] allMarkers;
-	private void initializeKeys(IResource resource, IPath path, IDocument document ) {
+
+	private void initializeKeys(IResource resource, IPath path, IDocument document) {
 		try {
 			allMarkers = resource.findMarkers(IMarker.BOOKMARK, false, IResource.DEPTH_ZERO);
-			
+
 			for (IMarker aMarker : allMarkers) {
 
 				String message = aMarker.getAttribute(IMarker.MESSAGE, "");
 				String subString = message.substring(0, 3);
 
-				if (subString.equals("FSM") ) {
+				if (subString.equals("FSM")) {
 					String theLine = message.substring(5, message.length());
-					int lineNum = aMarker.getAttribute(IMarker.LINE_NUMBER, 0 );
-					String sameLineInDoc = document.get(document.getLineOffset(lineNum-1), document.getLineLength(lineNum-1)).trim();
-					
+					int lineNum = aMarker.getAttribute(IMarker.LINE_NUMBER, 0);
+					String sameLineInDoc = document
+							.get(document.getLineOffset(lineNum - 1), document.getLineLength(lineNum - 1)).trim();
+
 					String className = path.toFile().getName();
 					String key = className + theLine + String.valueOf(lineNum);
-					
+
 					if (sameLineInDoc.equals(theLine) == false) {
 						System.out.println("deleting key an marker");
 						aMarker.delete();
@@ -88,7 +92,7 @@ public class TextDiagramHelper {
 						continue;
 					}
 					plantMarkerKey.add(key);
-					
+
 					System.out.println("initialized keys for file: " + className + "Key = :" + key);
 				}
 			}
@@ -98,27 +102,25 @@ public class TextDiagramHelper {
 			System.out.println("Couldnt find line in docuent");
 		}
 	}
-	
 
-	//TODO: onStartup initialize keylist with FSM bookmarks
-	//Delete keys on marker deletion?
+	// TODO: onStartup initialize keylist with FSM bookmarks
+	// Delete keys on marker deletion?
 	private void createKey(String theLine, int lineNum, IPath path, boolean toggle) {
 		if (!validateLine(theLine))
 			return;
 		String className = path.toFile().getName();
 		String key = className + theLine + String.valueOf(lineNum + 1);
 		if (plantMarkerKey.contains(key)) {
-			//System.out.println("Key exists: " + key);
+			// System.out.println("Key exists: " + key);
 			return;
 		}
 		plantMarkerKey.add(key);
 		addTask(theLine, lineNum, path);
 	}
-	
-	
+
 	private void addTask(String theLine, int lineNum, IPath path) {
-		// use Platform.run to batch the marker creation and attribute setting		
-		
+		// use Platform.run to batch the marker creation and attribute setting
+
 		Platform.run(new ISafeRunnable() {
 			public void run() throws Exception {
 				IWorkspace workspace = ResourcesPlugin.getWorkspace();
@@ -131,15 +133,92 @@ public class TextDiagramHelper {
 				marker.setAttribute(IMarker.SOURCE_ID, path.toString());
 			}
 		});
-		
+
 	}
+
+
+	//Checks that the current diagram description is of a state machine
+	private boolean ensureFSM(String line) {
+		String stateValid = "[*]";
+		return (line.toLowerCase().contains(stateValid.toLowerCase()));
+	}
+
+
+	//Link from the editor to the diagram
+	private String forwardStateLink(String selectedLine) {
+		String colorState = "";
+
+		for (int i = 0; i < selectedLine.length(); i++) {
+			if (selectedLine.charAt(i) == ' ' && selectedLine.charAt(i + 1) == ':') {
+				colorState = "state " + selectedLine.substring(0, i) + " #green";
+			}
+		}
+		return colorState;
+	}
+
+	//Link from the editor to the diagram
+	private String forwardTransitionLink(String selectedLine) {
+		String colorTransition = "";
+		int indexOfTrans = 0;
+		char tmp = 'c';
+
+		for (int i = 0; i < selectedLine.length(); i++) {
+			char c = selectedLine.charAt(i);
+			if (c == '>' && tmp == '-') {
+				indexOfTrans = selectedLine.indexOf('-');
+				colorTransition = selectedLine.substring(0, indexOfTrans) + "-[thickness=5,#blue]"
+						+ selectedLine.substring(indexOfTrans + 1, selectedLine.length()) ;
+				break;
+			}
+			tmp = c;
+		}
+		return colorTransition;
+	}
+
+	private String backwardStateLink(String aLine, String className) {
+			String backStateLink;
+			String stateName = "";
+		for (int i = 0; i < aLine.length(); i++) {
+			if (aLine.charAt(i) == ' ') {
+				stateName = aLine.substring(0, i) ;
+				break;
+			}
+		}
+		backStateLink  = "state " + stateName + "[[java:"+className+"]]";
+		return backStateLink;
+
+	}
+
+	private String backwardTransitionLink(String aLine, String className) {
+		return aLine + " : " + "[[java:"+className+"]]";
+	}
+
 	
-	
-	
-	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart, final Map<String, Object> markerAttributes, IEditorInput editorInput) {
+	/**
+	@startuml
+
+	[*] --> State1
+	State1 --> [*]
+	State1 : this is another string
+	State2 -> State3
+	State2 : a messagfe 
+	State2 : A SECOND
+
+	State1 -> State2
+	State2 --> [*] 
+
+	State7 : a new one
+
+
+	@enduml
+	*/
+
+
+	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart,
+			final Map<String, Object> markerAttributes, IEditorInput editorInput) {
 		final boolean includeStart = prefix.startsWith("@"), includeEnd = suffix.startsWith("@");
 		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
-		IPath path = ((IFileEditorInput)editorInput).getFile().getFullPath();
+		IPath path = ((IFileEditorInput) editorInput).getFile().getFullPath();
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot wsRoot = workspace.getRoot();
 		IResource root = wsRoot.findMember(path);
@@ -161,58 +240,87 @@ public class TextDiagramHelper {
 				}
 			}
 			if (start != null) {
-				
-				final int startOffset = start.getOffset(), startLine = document.getLineOfOffset(startOffset + (includeStart ? 0 : start.getLength()));
-				
-				
-				
+
+				final int startOffset = start.getOffset(),
+						startLine = document.getLineOfOffset(startOffset + (includeStart ? 0 : start.getLength()));
+
 				final IRegion end = finder.find(startOffset + start.getLength(), suffixRegex, true, true, false, true);
 				if (end != null && end.getOffset() >= selectionStart) {
+
 					int selectedLineNum = document.getLineOfOffset(selectionStart);
-					String selectedLine = document.get(document.getLineOffset(selectedLineNum), document.getLineLength(selectedLineNum)).trim();
-					boolean transitionSelected = false;
+					String selectedLine = document
+							.get(document.getLineOffset(selectedLineNum), document.getLineLength(selectedLineNum))
+							.trim();
+					
 					boolean stateSelected = false;
-					int indexOfTrans = 0;
-					String test ="";
-					String colorState = "";
-					char tmp = 'c';
-			
-					for (int i=0; i< selectedLine.length(); i++) {
-						if (selectedLine.charAt(i) == ' ' && selectedLine.charAt(i + 1) == ':') {
-							colorState = "state " + selectedLine.substring(0, i) + " #green";
-							stateSelected = true;
-						}
-						char c = selectedLine.charAt(i);
-						if (c == '>' && tmp == '-') {
-							transitionSelected = true;
-							indexOfTrans = selectedLine.indexOf('-');
-							test = selectedLine.substring(0,indexOfTrans) + "-[thickness=5,#blue]" + selectedLine.substring(indexOfTrans+1, selectedLine.length());
-						}
-						
-						tmp = c;
-					}
+					boolean transitionSelected = false;
+					
+					String colorState = forwardStateLink(selectedLine);
+					String colorTransition = forwardTransitionLink(selectedLine);
+					if (colorState != "")
+						stateSelected = true;
+					if (colorTransition != "")
+						transitionSelected = true;
+
 
 					final int endOffset = end.getOffset() + end.getLength();
-					//					String linePrefix = document.get(startLinePos, startOffset - startLinePos).trim();
-					final StringBuilder result = new StringBuilder();
-					final int maxLine = Math.min(document.getLineOfOffset(endOffset) + (includeEnd ? 1 : 0), document.getNumberOfLines());
+					StringBuilder result = new StringBuilder();
+					final int maxLine = Math.min(document.getLineOfOffset(endOffset) + (includeEnd ? 1 : 0),
+							document.getNumberOfLines());
+
+					diagramText.clear();
+					boolean fsm = false;
+					System.out.println("PAAAAATTTH:" + path.toString());
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
-						createKey(line, lineNum, path, toggle);				
-					
-						
-						if (transitionSelected == true && selectedLineNum == lineNum) 
-							result.append(test);
-						else if (stateSelected == true && selectedLineNum == lineNum) {
-							result.append(colorState);
-							result.append("\n");
+						diagramText.add(line);
+						if (ensureFSM(line)) {
+								fsm = true;
+						}
+					}
 
-							result.append(line);
+					String className = path.toFile().getName();
+					className = className.substring(0, className.length()- 5);
+					
+//					System.out.println("Package: "+className.getPackage());
+					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
+						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
+						createKey(line, lineNum, path, toggle);
+						
+
+						
+						
+						//add transitions and their links
+						if (line.contains("->") && fsm) 
+							if (transitionSelected == true && selectedLineNum == lineNum) {
+								result.append(backwardTransitionLink(colorTransition, className));
+							} else
+								result.append(backwardTransitionLink(line, className));
+						//add states and their links
+						else if (line.contains("State") && fsm) {
+							if (line.contains("[*]"))
+								continue;
+							if (stateSelected == true && selectedLineNum == lineNum) {
+								result.append(line);
+								result.append("\n");
+								result.append(backwardStateLink(line, className));
+								result.append("\n");
+								result.append(colorState);
+							} else {
+								result.append(line);
+								//if the backward link doesnt already exist add it
+								if (result.indexOf(backwardStateLink(line, className)) < 0) {
+									result.append("\n");
+									result.append(backwardStateLink(line, className));
+								}
+								
+							}
 						} else
 							result.append(line);
-						if (! line.endsWith("\n")) {
+						if (!line.endsWith("\n")) {
 							result.append("\n");
 						}
+					
 					}
 					markerAttributes.put(IMarker.CHAR_START, start.getOffset());
 					initializeKeys(root, path, document);
@@ -224,13 +332,13 @@ public class TextDiagramHelper {
 		}
 		return null;
 	}
-	
+
 	public String getDiagramText(final CharSequence lines) {
 		return getDiagramText(new StringBuilder(lines.toString()));
 	}
 
 	public String getDiagramText(final StringBuilder lines) {
-		
+
 		final int prefixPos = lines.indexOf(prefix);
 		int start = Math.max(prefixPos, 0);
 		final int suffixPos = lines.lastIndexOf(suffix);
@@ -309,8 +417,10 @@ public class TextDiagramHelper {
 				if (start == null || end == null) {
 					break;
 				}
-				final int diagramStart = start.getOffset() + start.getLength() + 1, diagramLine = document.getLineOfOffset(diagramStart);
-				final String line = document.get(document.getLineOffset(diagramLine), document.getLineLength(diagramLine)).trim();
+				final int diagramStart = start.getOffset() + start.getLength() + 1,
+						diagramLine = document.getLineOfOffset(diagramStart);
+				final String line = document
+						.get(document.getLineOffset(diagramLine), document.getLineLength(diagramLine)).trim();
 				final ISelection selection = new TextSelection(start.getOffset() + start.getLength(), 0) {
 					@Override
 					public String toString() {

@@ -16,6 +16,7 @@ import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.Rectangle;
 
+import net.sourceforge.plantuml.BlockUml;
 import net.sourceforge.plantuml.FileFormat;
 import net.sourceforge.plantuml.FileFormatOption;
 import net.sourceforge.plantuml.FileSystem;
@@ -98,19 +99,7 @@ public class Diagram {
 			final SourceStringReader reader = new SourceStringReader(textDiagram);
 			final DiagramDescription desc = reader.outputImage(os, imageNum);
 			
-			if (DEBUG) {
-		      System.out.println(desc.toString().toString());
-		      System.out.println(desc.toString().length());
-		      System.out.println(imageNum);
-
-	          System.out.println(desc.getDescription());
-	          System.out.println(reader.toString());
-	          for (int i = 0; i< reader.getBlocks().size(); i++) {
-	        	  System.out.println(reader.getBlocks().get(i).toString());
-	        	  System.out.println(reader.getBlocks().get(i).getDiagram());
-
-	          }
-			}
+			
 			if (links != null) {
 				final String cMapData = reader.getCMapData(0, layoutFormatOption);
 				if (cMapData != null) {
@@ -121,6 +110,7 @@ public class Diagram {
 			if (desc != null && StringUtils.isNotEmpty(desc.getDescription())) {
 				try (InputStream is = new ByteArrayInputStream(os.toByteArray())) {
 					imageData = new ImageData(is);
+
 				}
 			}
 		} catch (final IOException e) {
@@ -132,6 +122,9 @@ public class Diagram {
 	private static void parseImageMapString(final String cMapData, final Collection<LinkData> links) {
 		final String[] areaElements = cMapData.split(Pattern.quote("<area "));
 		for (final String areaElement : areaElements) {
+//			System.out.println("CMAPDATA: " + areaElement);
+//			System.out.println("title: " + getAttributeValue(areaElement, "title"));
+//			System.out.println("Coords: " + getAttributeValue(areaElement, "coords") );
 			//			int pos = areaElement.indexOf('>');
 			//			if (pos >= 0) {
 			//				areaElement = areaElement.substring(0, pos);
