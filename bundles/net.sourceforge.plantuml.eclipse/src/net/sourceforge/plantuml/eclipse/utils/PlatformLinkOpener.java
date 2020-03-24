@@ -10,6 +10,7 @@ public class PlatformLinkOpener extends EditorLinkOpener {
 	
 	@Override
 	public int supportsLink(LinkData link) {
+		System.out.println("platform");
 		try {
 			URI uri = new URI(link.href);
 			if ("platform".equals(uri.getScheme()) && uri.getPath().startsWith("/resource")) {

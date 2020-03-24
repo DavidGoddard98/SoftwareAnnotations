@@ -20,6 +20,7 @@ public class MarkerLinkOpener implements ILinkOpener {
 	
 	@Override
 	public int supportsLink(LinkData link) {
+		System.out.println("marker");
 		try {
 			URI uri = new URI(link.href);
 			if ("marker".equals(uri.getScheme())) {

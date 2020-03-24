@@ -19,6 +19,7 @@ public class JavaLinkOpener implements ILinkOpener {
 	
 	@Override
 	public int supportsLink(LinkData link) {
+		System.out.println("java");
 		try {
 			URI uri = new URI(link.href);
 			if ("java".equals(uri.getScheme()) && getJavaElement(link) != null) {
@@ -58,6 +59,10 @@ public class JavaLinkOpener implements ILinkOpener {
 	@Override
 	public void openLink(LinkData link) {
 		try {
+			String theLink = link.href;
+			String theLinkT = link.title;
+			String altTxt = link.altText;
+			System.out.println("HREF: " + theLink + "Title: " + theLinkT + "alt txt: " + altTxt);
 			IJavaElement javaElement = getJavaElement(link);
 			JavaUI.openInEditor(javaElement);
 		} catch (PartInitException e) {

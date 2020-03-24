@@ -79,5 +79,9 @@
       <linkOpener
             linkOpenerClass="net.sourceforge.plantuml.eclipse.utils.MarkerLinkOpener">
       </linkOpener>
+      <linkOpener
+            linkOpenerClass="net.sourceforge.plantuml.eclipse.utils.StateLinkOpener">
+      </linkOpener>
+
    </extension>
 </plugin>

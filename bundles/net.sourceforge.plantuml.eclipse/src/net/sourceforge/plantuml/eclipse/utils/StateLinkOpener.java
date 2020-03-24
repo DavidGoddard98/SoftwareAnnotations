@@ -1,24 +1,20 @@
 package net.sourceforge.plantuml.eclipse.utils;
 
-import java.net.URI;
-import java.net.URISyntaxException;
+
 import java.net.URL;
 
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.browser.IWebBrowser;
 import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
 
-public class DefaultLinkOpener implements ILinkOpener {
+public class StateLinkOpener implements ILinkOpener {
 	
 	@Override
 	public int supportsLink(LinkData link) {
-		System.out.println("default");
-		try {
-			URI uri = new URI(link.href);
-			if (uri.getScheme() != null) {
-				return DEFAULT_SUPPORT;
-			}
-		} catch (URISyntaxException e) {
+		System.out.println("trying state link opener");
+		String href = link.href;
+		if (href.contains("FSM")) {
+			return STATE_SUPPORT;
 		}
 		return NO_SUPPORT;
 	}
@@ -27,6 +23,7 @@ public class DefaultLinkOpener implements ILinkOpener {
 	
 	@Override
 	public void openLink(LinkData link) {
+		System.out.println("In statelink opner :)");
 		try {
 			URL url = new URL(link.href);
 			IWorkbenchBrowserSupport browserSupport = PlatformUI.getWorkbench().getBrowserSupport();

@@ -16,6 +16,7 @@ public abstract class EditorLinkOpener implements ILinkOpener {
 	
 	@Override
 	public int supportsLink(LinkData link) {
+		System.out.println("editor link operner");
 		if (getPath(link) != null) {
 			return CUSTOM_SUPPORT;
 		}
@@ -38,6 +39,7 @@ public abstract class EditorLinkOpener implements ILinkOpener {
 	@Override
 	public void openLink(LinkData link) {
 		try {
+			System.out.println("editorlink opener");
 			IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 			IPath path = getPath(link);
 			IFile file = ResourcesPlugin.getWorkspace().getRoot().getFile(path);

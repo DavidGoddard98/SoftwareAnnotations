@@ -4,12 +4,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
@@ -38,7 +38,7 @@ public class TextDiagramHelper {
 	private final String prefix, prefixRegex;
 	private final String suffix, suffixRegex;
 	HashSet<String> plantMarkerKey = new HashSet<String>();
-	HashSet<String> diagramText = new HashSet<String>();
+	HashMap<String, Integer> diagramText = new HashMap<String, Integer>();
 	boolean toggle = true;
 
 	public TextDiagramHelper(final String prefix, final String prefixRegex, final String suffix,
@@ -174,23 +174,29 @@ public class TextDiagramHelper {
 		}
 		return colorTransition;
 	}
+	
+	private HashSet<Integer> getStateLines(HashMap<String, Integer> diagramText, String stateName) {
+		HashSet<Integer> stateLines = new HashSet<Integer>();
+		
+		for (String theLine : diagramText.keySet()) {
+	    	if (theLine.contains("->"))
+	    		continue;
+	    	if (theLine.contains(stateName)) { 
+	    		stateLines.add(diagramText.get(theLine));
+	    	}
+	    }
+		return stateLines;
+	}
 
-	private String backwardStateLink(String aLine, String className) {
-			String backStateLink;
-			String stateName = "";
-		for (int i = 0; i < aLine.length(); i++) {
-			if (aLine.charAt(i) == ' ') {
-				stateName = aLine.substring(0, i) ;
-				break;
-			}
-		}
-		backStateLink  = "state " + stateName + "[[java:"+className+"]]";
+	private String backwardStateLink(String stateName, String className, String stateLines) {		
+		String backStateLink  = "state " + stateName + "[[java:"+className+"#FSM#state#"+stateName+"#"+ stateLines +"]]";
 		return backStateLink;
 
 	}
 
-	private String backwardTransitionLink(String aLine, String className) {
-		return aLine + " : " + "[[java:"+className+"]]";
+	private String backwardTransitionLink(String aLine, String className, int lineNum) {
+		return aLine + " : " + "[["+className+"#FSM#transition#"+lineNum+"]]";
+
 	}
 
 	
@@ -273,7 +279,7 @@ public class TextDiagramHelper {
 					System.out.println("PAAAAATTTH:" + path.toString());
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
-						diagramText.add(line);
+						diagramText.put(line, lineNum + 1);
 						if (ensureFSM(line)) {
 								fsm = true;
 						}
@@ -281,6 +287,7 @@ public class TextDiagramHelper {
 
 					String className = path.toFile().getName();
 					className = className.substring(0, className.length()- 5);
+					
 					
 //					System.out.println("Package: "+className.getPackage());
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
@@ -293,25 +300,27 @@ public class TextDiagramHelper {
 						//add transitions and their links
 						if (line.contains("->") && fsm) 
 							if (transitionSelected == true && selectedLineNum == lineNum) {
-								result.append(backwardTransitionLink(colorTransition, className));
+								result.append(backwardTransitionLink(colorTransition, className, lineNum));
 							} else
-								result.append(backwardTransitionLink(line, className));
+								result.append(backwardTransitionLink(line, className, lineNum));
 						//add states and their links
 						else if (line.contains("State") && fsm) {
-							if (line.contains("[*]"))
-								continue;
+							String arr[] = line.split(" ", 2);
+							String stateName = arr[0];
+							String stateLines = getStateLines(diagramText, stateName).toString();
 							if (stateSelected == true && selectedLineNum == lineNum) {
 								result.append(line);
 								result.append("\n");
-								result.append(backwardStateLink(line, className));
+
+								result.append(backwardStateLink(stateName, className, stateLines));
 								result.append("\n");
 								result.append(colorState);
 							} else {
 								result.append(line);
 								//if the backward link doesnt already exist add it
-								if (result.indexOf(backwardStateLink(line, className)) < 0) {
+								if (result.indexOf(backwardStateLink(stateName, className, stateLines)) < 0) {
 									result.append("\n");
-									result.append(backwardStateLink(line, className));
+									result.append(backwardStateLink(stateName, className, stateLines));
 								}
 								
 							}
