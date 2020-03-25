@@ -175,21 +175,21 @@ public class TextDiagramHelper {
 		return colorTransition;
 	}
 	
-	private HashSet<Integer> getStateLines(HashMap<String, Integer> diagramText, String stateName) {
-		HashSet<Integer> stateLines = new HashSet<Integer>();
+	private StringBuilder getStateLines(HashMap<String, Integer> diagramText, String stateName) {
+		StringBuilder stateLines = new StringBuilder();
 		
 		for (String theLine : diagramText.keySet()) {
 	    	if (theLine.contains("->"))
 	    		continue;
 	    	if (theLine.contains(stateName)) { 
-	    		stateLines.add(diagramText.get(theLine));
+	    		stateLines.append(diagramText.get(theLine) + ",");
 	    	}
 	    }
 		return stateLines;
 	}
 
 	private String backwardStateLink(String stateName, String className, String stateLines) {		
-		String backStateLink  = "state " + stateName + "[[java:"+className+"#FSM#state#"+stateName+"#"+ stateLines +"]]";
+		String backStateLink  = "state " + stateName + "[["+className+"#FSM#state#"+stateName+"#"+ stateLines +"]]";
 		return backStateLink;
 
 	}
@@ -276,7 +276,6 @@ public class TextDiagramHelper {
 
 					diagramText.clear();
 					boolean fsm = false;
-					System.out.println("PAAAAATTTH:" + path.toString());
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
 						diagramText.put(line, lineNum + 1);

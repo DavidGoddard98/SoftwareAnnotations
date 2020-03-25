@@ -3,9 +3,7 @@ package net.sourceforge.plantuml.eclipse.utils;
 
 import java.net.URL;
 
-import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.browser.IWebBrowser;
-import org.eclipse.ui.browser.IWorkbenchBrowserSupport;
+
 
 public class StateLinkOpener implements ILinkOpener {
 	
@@ -19,17 +17,17 @@ public class StateLinkOpener implements ILinkOpener {
 		return NO_SUPPORT;
 	}
 
-	private boolean preferInternal = false;
+	//private boolean preferInternal = false;
 	
 	@Override
 	public void openLink(LinkData link) {
-		System.out.println("In statelink opner :)");
-		try {
-			URL url = new URL(link.href);
-			IWorkbenchBrowserSupport browserSupport = PlatformUI.getWorkbench().getBrowserSupport();
-			IWebBrowser browser = (preferInternal ? browserSupport.createBrowser(IWorkbenchBrowserSupport.AS_VIEW, "plantuml", "PlantUML Browser", null) : browserSupport.getExternalBrowser());
-			browser.openURL(url);
-		} catch (Exception e) {
-		}
+//		System.out.println("In statelink opner :)");
+//		try {
+//			URL url = new URL(link.href);
+//			IWorkbenchBrowserSupport browserSupport = PlatformUI.getWorkbench().getBrowserSupport();
+//			IWebBrowser browser = (preferInternal ? browserSupport.createBrowser(IWorkbenchBrowserSupport.AS_VIEW, "plantuml", "PlantUML Browser", null) : browserSupport.getExternalBrowser());
+//			browser.openURL(url);
+//		} catch (Exception e) {
+//		}
 	}
 }

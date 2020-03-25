@@ -234,6 +234,7 @@ public class Activator extends AbstractUIPlugin implements DiagramTextProviderRe
 				final String name = ces.getName();
 				System.out.println(name);
 				if ("linkOpener".equals(name)) {
+					System.out.println("here");
 					try {
 						final ILinkOpener linkOpener = (ILinkOpener) ces.createExecutableExtension("linkOpenerClass");
 						linkOpeners.add(linkOpener);

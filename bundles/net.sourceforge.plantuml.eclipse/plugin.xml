@@ -82,6 +82,7 @@
       <linkOpener
             linkOpenerClass="net.sourceforge.plantuml.eclipse.utils.StateLinkOpener">
       </linkOpener>
+      
 
    </extension>
 </plugin>
