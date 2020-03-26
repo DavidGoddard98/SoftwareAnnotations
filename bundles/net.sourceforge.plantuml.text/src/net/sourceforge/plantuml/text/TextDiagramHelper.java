@@ -83,7 +83,10 @@ public class TextDiagramHelper {
 					String key = className + theLine + String.valueOf(lineNum);
 
 					if (sameLineInDoc.equals(theLine) == false) {
-						System.out.println("deleting key an marker");
+						System.out.println();
+						System.out.println();
+						System.out.println();
+						System.out.println("DELETING KEY AND MARKER");
 						aMarker.delete();
 						plantMarkerKey.remove(key);
 						continue;
@@ -105,7 +108,7 @@ public class TextDiagramHelper {
 
 	// TODO: onStartup initialize keylist with FSM bookmarks
 	// Delete keys on marker deletion?
-	private void createKey(String theLine, int lineNum, IPath path, boolean toggle) {
+	private void createKey(String theLine, int lineNum, IPath path, boolean toggle, IRegion region) {
 		if (!validateLine(theLine))
 			return;
 		String className = path.toFile().getName();
@@ -115,10 +118,10 @@ public class TextDiagramHelper {
 			return;
 		}
 		plantMarkerKey.add(key);
-		addTask(theLine, lineNum, path);
+		addTask(theLine, lineNum, path, region);
 	}
 
-	private void addTask(String theLine, int lineNum, IPath path) {
+	private void addTask(String theLine, int lineNum, IPath path, IRegion region) {
 		// use Platform.run to batch the marker creation and attribute setting
 
 		Platform.run(new ISafeRunnable() {
@@ -131,6 +134,8 @@ public class TextDiagramHelper {
 				marker.setAttribute(IMarker.MESSAGE, "FSM: " + theLine);
 				marker.setAttribute(IMarker.LINE_NUMBER, lineNum + 1);
 				marker.setAttribute(IMarker.SOURCE_ID, path.toString());
+				marker.setAttribute(IMarker.CHAR_START, region.getOffset());
+				marker.setAttribute(IMarker.CHAR_END, region.getOffset() + region.getLength());
 			}
 		});
 
@@ -232,6 +237,17 @@ public class TextDiagramHelper {
 		initializeKeys(root, path, document);
 		
 		try {
+			IMarker[] markers = root.findMarkers("FSM.MARKER", true, IResource.DEPTH_INFINITE);
+			System.out.println("HEEEERE");
+			System.out.println(markers.length);
+		      for (IMarker m : markers) {
+		    	  System.out.println(m.getAttribute(IMarker.LINE_NUMBER));
+		      }
+		} catch (CoreException e) {
+			
+		}
+		
+		try {
 
 			// search backward and forward start and end
 			IRegion start = finder.find(selectionStart, prefixRegex, false, true, false, true);
@@ -291,10 +307,11 @@ public class TextDiagramHelper {
 //					System.out.println("Package: "+className.getPackage());
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
-						createKey(line, lineNum, path, toggle);
+						IRegion markerRegion = finder.find(0, line, true, true, false, false);
+
+						createKey(line, lineNum, path, toggle, markerRegion);
 						
 
-						
 						
 						//add transitions and their links
 						if (line.contains("->") && fsm) 

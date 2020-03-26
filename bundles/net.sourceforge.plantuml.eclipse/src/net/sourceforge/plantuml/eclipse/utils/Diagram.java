@@ -92,9 +92,7 @@ public class Diagram {
 		setGraphvizPath();
 		ImageData imageData = null;
 		try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
-			if (DEBUG)
-				  System.out.println("Text diagram description");
-			      System.out.println(textDiagram);
+			
 			// image generation
 			final SourceStringReader reader = new SourceStringReader(textDiagram);
 			final DiagramDescription desc = reader.outputImage(os, imageNum);
