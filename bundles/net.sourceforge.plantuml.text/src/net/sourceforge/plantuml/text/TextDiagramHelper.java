@@ -3,6 +3,7 @@ package net.sourceforge.plantuml.text;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -83,9 +84,7 @@ public class TextDiagramHelper {
 					String key = className + theLine + String.valueOf(lineNum);
 
 					if (sameLineInDoc.equals(theLine) == false) {
-						System.out.println();
-						System.out.println();
-						System.out.println();
+		
 						System.out.println("DELETING KEY AND MARKER");
 						aMarker.delete();
 						plantMarkerKey.remove(key);
@@ -155,7 +154,7 @@ public class TextDiagramHelper {
 
 		for (int i = 0; i < selectedLine.length(); i++) {
 			if (selectedLine.charAt(i) == ' ' && selectedLine.charAt(i + 1) == ':') {
-				colorState = "state " + selectedLine.substring(0, i) + " #green";
+				colorState = "state " + selectedLine.substring(0, i) + " #Cyan";
 			}
 		}
 		return colorState;
@@ -193,36 +192,106 @@ public class TextDiagramHelper {
 		return stateLines;
 	}
 
-	private String backwardStateLink(String stateName, String className, String stateLines) {		
-		String backStateLink  = "state " + stateName + "[["+className+"#FSM#state#"+stateName+"#"+ stateLines +"]]";
-		return backStateLink;
+	private static String backwardStateLink(String stateName, String className, int lineNum) {		
+		return "state " + stateName + "[["+className+"#FSM#"+ lineNum +"]]";
 
 	}
 
 	private String backwardTransitionLink(String aLine, String className, int lineNum) {
-		return aLine + " : " + "[["+className+"#FSM#transition#"+lineNum+"]]";
+		return aLine + " : " + "[["+className+"#FSM#"+lineNum+"]]";
 
 	}
 
 	
-	/**
-	@startuml
+	private void displayMarkers(String stateName, String fileName, IResource root)  {
+		//
+	
+		
+		String stateLines = getStateLines(diagramText, stateName).toString();
+   	    String[] lineNums = stateLines.split(",");
+   	    int[] intLineNums = Arrays.asList(lineNums).stream().mapToInt(Integer::parseInt).toArray();
+   	    try { 
+   	    	
+	   	   
+			IMarker[] markers = root.findMarkers(IMarker.BOOKMARK, true, IResource.DEPTH_INFINITE);
+		      for (IMarker m : markers) {
+		    	  String path = (String)(m.getAttribute(IMarker.SOURCE_ID));
+		    	  String[] tmp = path.split("/");
+		    	  String file = tmp[tmp.length-1];
+		    	  file = file.substring(0, file.length() - 5);
+		    	  
+		    	 
+		    	  
+		    	  if (file.equals(fileName)) {
+			    	  int markerLine = (int)m.getAttribute(IMarker.LINE_NUMBER);
+			    	  for (int i = 0; i<intLineNums.length; i++) {
+			    		  
+		
+		        		  if (markerLine == intLineNums[i]) {
+		        			
+		        			  try {
+		        				  int charStart =  (int)m.getAttribute(IMarker.CHAR_START); 
+				    		      int charEnd =  (int)m.getAttribute(IMarker.CHAR_END);
+				    		      IMarker marker = root.createMarker("FSM.MARKER");
+				    		      marker.setAttribute(IMarker.LINE_NUMBER, markerLine);
+				    		      marker.setAttribute(IMarker.SOURCE_ID, path);
+				    			  marker.setAttribute(IMarker.CHAR_START,charStart);
+				    		      marker.setAttribute(IMarker.CHAR_END,charEnd);
+		        			  } catch (CoreException e) {
+		        				  
+		        		
+		        			 	  System.out.println("null");
+		        			  } 
+		        		  }
+			    	  }
+		    	  }
+		      }
+   	    } catch (CoreException e) {
+   	    	System.out.println("couldnt display markers");
+   	    }
 
-	[*] --> State1
-	State1 --> [*]
-	State1 : this is another string
-	State2 -> State3
-	State2 : a messagfe 
-	State2 : A SECOND
+	}
+	
+	private String getStateName(String line) {
+		String stateName;
+	    String[] state = line.split(" ", 2);
+	    stateName = state[0].replace(":", "");
+	    return stateName;
+	}
+	
+	private void removeHighlights(IResource resource) {
+		try {
+			IMarker[] markers = resource.findMarkers("FSM.MARKER", true, IResource.DEPTH_INFINITE);
+			for (IMarker m : markers) {
+				m.delete();
+			}
+		} catch (CoreException e) {
+			System.out.println("Couldnt remove highlights");
+		}
+		
+	}
+	
+	//create List of states..
+	private static void addToList(String line, int lineNum, String className, StringBuilder result, HashSet<String> doneStates) {
+		
+		String stateName;
+	    String[] states = line.split("State");
+	    String[] tmp;
+	    
+	    for  (int i = 1; i<states.length; i++) {
+	    	states[i] = states[i].replace(":", "");
+	    	tmp = states[i].split(" ", 2);
+	    	stateName = "State" + tmp[0];
+	    
+	    	if (!doneStates.contains(stateName)) {
+	    		result.append(backwardStateLink(stateName, className, lineNum));
+	    		result.append("\n");
+	    		doneStates.add(stateName);
+	    	}
+	    }
+	}
 
-	State1 -> State2
-	State2 --> [*] 
-
-	State7 : a new one
-
-
-	@enduml
-	*/
+	
 
 
 	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart,
@@ -236,16 +305,7 @@ public class TextDiagramHelper {
 		boolean toggle = true;
 		initializeKeys(root, path, document);
 		
-		try {
-			IMarker[] markers = root.findMarkers("FSM.MARKER", true, IResource.DEPTH_INFINITE);
-			System.out.println("HEEEERE");
-			System.out.println(markers.length);
-		      for (IMarker m : markers) {
-		    	  System.out.println(m.getAttribute(IMarker.LINE_NUMBER));
-		      }
-		} catch (CoreException e) {
-			
-		}
+	
 		
 		try {
 
@@ -274,16 +334,13 @@ public class TextDiagramHelper {
 							.get(document.getLineOffset(selectedLineNum), document.getLineLength(selectedLineNum))
 							.trim();
 					
-					boolean stateSelected = false;
-					boolean transitionSelected = false;
+					System.out.println("Selected line = " + selectedLine);
 					
-					String colorState = forwardStateLink(selectedLine);
-					String colorTransition = forwardTransitionLink(selectedLine);
-					if (colorState != "")
-						stateSelected = true;
-					if (colorTransition != "")
-						transitionSelected = true;
+				
+					
+				
 
+					
 
 					final int endOffset = end.getOffset() + end.getLength();
 					StringBuilder result = new StringBuilder();
@@ -303,7 +360,9 @@ public class TextDiagramHelper {
 					String className = path.toFile().getName();
 					className = className.substring(0, className.length()- 5);
 					
-					
+					removeHighlights(root);
+					HashSet<String> doneStates = new HashSet<String>();
+
 //					System.out.println("Package: "+className.getPackage());
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
@@ -311,37 +370,35 @@ public class TextDiagramHelper {
 
 						createKey(line, lineNum, path, toggle, markerRegion);
 						
-
+							
+						addToList(line, lineNum, className, result, doneStates);
 						
 						//add transitions and their links
-						if (line.contains("->") && fsm) 
-							if (transitionSelected == true && selectedLineNum == lineNum) {
+						if (line.contains("->") && fsm)  {
+							if (selectedLineNum == lineNum) {
+								String colorTransition = forwardTransitionLink(selectedLine);
 								result.append(backwardTransitionLink(colorTransition, className, lineNum));
 							} else
 								result.append(backwardTransitionLink(line, className, lineNum));
+						}
 						//add states and their links
 						else if (line.contains("State") && fsm) {
-							String arr[] = line.split(" ", 2);
-							String stateName = arr[0];
-							String stateLines = getStateLines(diagramText, stateName).toString();
-							if (stateSelected == true && selectedLineNum == lineNum) {
-								result.append(line);
-								result.append("\n");
+							if (selectedLineNum == lineNum) {
+								String stateName = getStateName(line);
+								String colorState = forwardStateLink(selectedLine);
 
-								result.append(backwardStateLink(stateName, className, stateLines));
+								result.append(line);
 								result.append("\n");
 								result.append(colorState);
+								displayMarkers(stateName, className, root);
+
 							} else {
+								System.out.println("line not selected");
 								result.append(line);
-								//if the backward link doesnt already exist add it
-								if (result.indexOf(backwardStateLink(stateName, className, stateLines)) < 0) {
-									result.append("\n");
-									result.append(backwardStateLink(stateName, className, stateLines));
-								}
-								
 							}
 						} else
 							result.append(line);
+						
 						if (!line.endsWith("\n")) {
 							result.append("\n");
 						}

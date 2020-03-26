@@ -31,89 +31,36 @@ public class StateLinkOpener implements ILinkOpener {
 
 	
 	private void linkBackState(String link) {
-		//transition
-
-	    String tmpArray[] = link.split("#");
-	    String fileName = tmpArray[0];
-	    
-	    IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		IResource resource = workspace.getRoot();
-        IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-	    //transition
-	    if (tmpArray[2].equals("transition")) {
-
-	      int transLineNum = Integer.parseInt(tmpArray[3]) + 1;
-	      //do something with lineNum and class name...
-
-	      try {
-	    	  IMarker[] markers = resource.findMarkers(IMarker.BOOKMARK, true, IResource.DEPTH_INFINITE);
-		      for (IMarker m : markers) {
-		    	  String path = (String)(m.getAttribute(IMarker.SOURCE_ID));
-		    	  String[] tmp = path.split("/");
-		    	  String file = tmp[tmp.length-1];
-		    	  file = file.substring(0, file.length() - 5);
-		    	  int markerLine = (int)m.getAttribute(IMarker.LINE_NUMBER);
-		    	  if (markerLine == transLineNum && file.equals(fileName)) {
-		    		  IDE.openEditor(page, m);
-		    		  break;
-		    	  }
-		      }
-	      } catch (CoreException e) {
-	    	  
-	      }
-	      
-	   
-	      
-	    }
-
-	    //state
-	    if (tmpArray[2].equals("state")) {
-	      String stateName = tmpArray[3];
-	      String lineNums[] = tmpArray[4].split(",");
-	      int[] array = Arrays.asList(lineNums).stream().mapToInt(Integer::parseInt).toArray();
-	      List<IMarker> markerSet = new ArrayList<IMarker>();
-	      try {
-	    	  IMarker[] markers = resource.findMarkers(IMarker.BOOKMARK, true, IResource.DEPTH_INFINITE);
-		      for (IMarker m : markers) {
-		    	  String path = (String)(m.getAttribute(IMarker.SOURCE_ID));
-		    	  String[] tmp = path.split("/");
-		    	  String file = tmp[tmp.length-1];
-		    	  file = file.substring(0, file.length() - 5);
-		    	  
-		    	  int markerLine = (int)m.getAttribute(IMarker.LINE_NUMBER);
-		    	  if (file.equals(fileName)) {
-		    		  for (int i = 0; i<array.length; i++) {
-		    			  if (markerLine == array[i]) {
-		    			      IDE.openEditor(page, m);
-		    			      try {
-			    			      int charStart = (int)m.getAttribute(IMarker.CHAR_START);
-			    			      int charEnd = (int)m.getAttribute(IMarker.CHAR_END);
-			    			    		  
-			    			    		  
-			    			      System.out.println("stae making marker");	  
-			    				  IMarker marker = resource.createMarker("FSM.MARKER");
-				    			  marker.setAttribute(IMarker.LINE_NUMBER, markerLine);
-				    			  marker.setAttribute(IMarker.SOURCE_ID, path);
-				    			    //if (region.getOffset() != 0) {
-				    			  marker.setAttribute(IMarker.CHAR_START,charStart);
-				    			  marker.setAttribute(IMarker.CHAR_END,charEnd);
-		    			      } catch (NullPointerException e) {
-		    			    	  System.out.println("NULL");
-		    			      }
-		    			  }
-		    		  }
-		    	  }
-		    	 
-		      }
-
-		      
+		try {
+			String linkToArray[] = link.split("#");
+		    String fileName = linkToArray[0];
 		    
-	      } catch (CoreException e) {
-	    	  
-	      }
+		    IWorkspace workspace = ResourcesPlugin.getWorkspace();
+			IResource resource = workspace.getRoot();
+	        IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+	    	IMarker[] markers = resource.findMarkers(IMarker.BOOKMARK, true, IResource.DEPTH_INFINITE);
+	    	
+	    	for (IMarker m : markers) {
+	    		String path = (String)(m.getAttribute(IMarker.SOURCE_ID));
+	    		String[] tmp = path.split("/");
+	    	  	String file = tmp[tmp.length-1];
+	    	  	file = file.substring(0, file.length() - 5);
+	    	  	
+	    	  	int markerLine = (int)m.getAttribute(IMarker.LINE_NUMBER);
+		    	int linkLineNum = Integer.parseInt(linkToArray[2]) + 1;
+		
+	    	  	if (markerLine == linkLineNum && file.equals(fileName)) {
+	    	  		IDE.openEditor(page, m);
+	    		  	break;
+	    	  	}
+		    }
+		} catch (CoreException e) {
+			System.out.println("Error linking back from diagram");
+	} 
+	    
 	    
 
-	    }
+	    
 		
 	}
 
