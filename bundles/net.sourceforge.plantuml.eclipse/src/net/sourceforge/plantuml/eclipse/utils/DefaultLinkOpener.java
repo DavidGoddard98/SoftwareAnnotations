@@ -12,7 +12,6 @@ public class DefaultLinkOpener implements ILinkOpener {
 	
 	@Override
 	public int supportsLink(LinkData link) {
-		System.out.println("default");
 		try {
 			URI uri = new URI(link.href);
 			if (uri.getScheme() != null) {

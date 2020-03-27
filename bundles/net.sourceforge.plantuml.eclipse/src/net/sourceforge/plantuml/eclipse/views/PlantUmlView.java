@@ -382,7 +382,6 @@ public class PlantUmlView extends AbstractDiagramSourceView implements ILinkSupp
 
 	@Override
 	public void openLink(final Object href) {
-		System.out.println("plantumlview openlink top part");
 		final DiagramImageControl imageControl = getCurrentImageControl();
 		if (imageControl != null) {
 			for (final LinkData linkData : getCurrentImageControl().getLinks()) {
@@ -390,7 +389,6 @@ public class PlantUmlView extends AbstractDiagramSourceView implements ILinkSupp
 				if (linkData.title == href || linkData.href == href) {
 					final ILinkOpener linkOpener = findBestLinkOpener(linkData, ILinkOpener.DEFAULT_SUPPORT);
 					if (linkOpener != null) {
-						System.out.println("Plantumlview openlink()");
 						linkOpener.openLink(linkData);
 						return;
 					}
@@ -406,7 +404,6 @@ public class PlantUmlView extends AbstractDiagramSourceView implements ILinkSupp
 			int support = ILinkOpener.NO_SUPPORT;
 			try {
 				support = linkOpener.supportsLink(link);
-				System.out.println("SUPPORT : " + support);
 
 			} catch (final Exception e) {
 			}
