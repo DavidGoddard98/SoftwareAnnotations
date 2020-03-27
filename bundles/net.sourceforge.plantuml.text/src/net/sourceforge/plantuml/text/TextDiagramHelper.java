@@ -381,6 +381,23 @@ public class TextDiagramHelper {
 	}
 	
 	//create List of states..
+	private static void addToList(String line, int lineNum, String className, StringBuilder result, HashSet<String> doneStates) {
+		
+		String stateName;
+	    String[] states = line.split("State");
+	    String[] tmp;
+	    
+	    for  (int i = 1; i<states.length; i++) {
+	    	states[i] = states[i].replace(":", "");
+	    	tmp = states[i].split(" ", 2);
+	    	stateName = "State" + tmp[0];
+	    	
+	    	if (!doneStates.contains(stateName)) {
+	    		
+	    		doneStates.add(stateName);
+	    	}
+	    }
+	}
 	
 
 	
@@ -447,17 +464,22 @@ public class TextDiagramHelper {
 					final int maxLine = Math.min(document.getLineOfOffset(endOffset) + (includeEnd ? 1 : 0),
 							document.getNumberOfLines());
 
+					
+					String className = path.toFile().getName();
+					className = className.substring(0, className.length()- 5);
+					
 					diagramText.clear();
 					boolean fsm = false;
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
 						diagramText.put(line, lineNum + 1);
 						
-						if(!line.contains("->")) {
+						if(!line.contains("->") && line.contains("State")) {
 							String stateName = getStateName(line);
 
 							if (!doneStates.contains(stateName)) {
 					    		doneStates.add(stateName);
+	
 					    	}
 						}
 						if (ensureFSM(line)) {
@@ -465,12 +487,12 @@ public class TextDiagramHelper {
 						}
 					}
 
-					String className = path.toFile().getName();
-					className = className.substring(0, className.length()- 5);
+					
 					
 					removeHighlights(root);
 					List<String> transitionStates = new ArrayList<String>();
 					List<String> transitionStateNames = new ArrayList<String>();
+					String lastStateName = "";
 
 //					System.out.println("Package: "+className.getPackage());
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
@@ -501,10 +523,10 @@ public class TextDiagramHelper {
 							if (selectedLineNum == lineNum) {
 								String colorTransition = forwardTransitionLink(selectedLine);
 								result.append(backwardTransitionLink(colorTransition, className, lineNum));
-								for (int i =0 ; i<transitionStateNames.size(); i++) {
-									if (transitionStates.contains(transitionStateNames.get(i)))
-										displayMarkers(transitionStateNames.get(i), className, root);
-								}
+//								for (int i =0 ; i<transitionStateNames.size(); i++) {
+//									if (transitionStates.contains(transitionStateNames.get(i)))
+//										displayMarkers(transitionStateNames.get(i), className, root);
+//								}
 							}
 							else
 								result.append(backwardTransitionLink(line, className, lineNum));
@@ -515,23 +537,26 @@ public class TextDiagramHelper {
 
 						
 
-							if (selectedLineNum == lineNum) {
+							if (selectedLineNum == lineNum || stateName.equals(lastStateName) ) {
 								String colorState = forwardStateLink(selectedLine);
-
+					    		
 								result.append(line);
 								result.append("\n");
 								result.append(backwardStateLink(stateName, className, lineNum));
 					    		result.append("\n");
-								
+							
+								System.out.println(stateName);
 								result.append(colorState);
 								displayMarkers(stateName, className, root);
+								System.out.println(result);
+								lastStateName = stateName;
 
 							} else {
-								result.append(line);
-					    		result.append("\n");
-
 								result.append(backwardStateLink(stateName, className, lineNum));
 					    		result.append("\n");
+								result.append(line);
+								
+					    		
 
 							}
 						} else
