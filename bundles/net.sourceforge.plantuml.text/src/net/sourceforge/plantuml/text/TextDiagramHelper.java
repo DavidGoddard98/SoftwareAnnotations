@@ -40,7 +40,7 @@ public class TextDiagramHelper {
 	private final String suffix, suffixRegex;
 	HashSet<String> plantMarkerKey = new HashSet<String>();
 	HashMap<String, Integer> diagramText = new HashMap<String, Integer>();
-	boolean toggle = true;
+	private boolean toggle = true;
 
 	public TextDiagramHelper(final String prefix, final String prefixRegex, final String suffix,
 			final String suffixRegex) {
@@ -64,7 +64,8 @@ public class TextDiagramHelper {
 
 
 	IMarker[] allMarkers;
-
+	
+	//initialize all fsm markers made in previous sessions
 	private void initializeKeys(IResource resource, IPath path, IDocument document) {
 		try {
 			allMarkers = resource.findMarkers(IMarker.BOOKMARK, false, IResource.DEPTH_ZERO);
@@ -77,37 +78,72 @@ public class TextDiagramHelper {
 				if (subString.equals("FSM")) {
 					String theLine = message.substring(5, message.length());
 					int lineNum = aMarker.getAttribute(IMarker.LINE_NUMBER, 0);
-					String sameLineInDoc = document
-							.get(document.getLineOffset(lineNum - 1), document.getLineLength(lineNum - 1)).trim();
 
 					String className = path.toFile().getName();
 					String key = className + theLine + String.valueOf(lineNum);
-
-					if (sameLineInDoc.equals(theLine) == false) {
-		
-						System.out.println("DELETING KEY AND MARKER");
-						aMarker.delete();
-						plantMarkerKey.remove(key);
-						continue;
-					}
-					if (plantMarkerKey.contains(key)) {
-						continue;
-					}
 					plantMarkerKey.add(key);
-
-					System.out.println("initialized keys for file: " + className + "Key = :" + key);
 				}
 			}
+		} catch (CoreException e) {
+			System.out.println("Error initializing keys");
+		}
+	}
+
+	private boolean possibleChangedMarker(String theLine, int lineNum, IPath iPath, IRegion region, IDocument document, IResource root) {
+		try {
+			allMarkers = root.findMarkers(IMarker.BOOKMARK, false, IResource.DEPTH_ZERO);
+			final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
+			IRegion markerRegion = finder.find(0, theLine, true, true, false, false);
+
+			String className = iPath.toFile().getName(); 
+			//remove .java
+			className = className.substring(0, className.length()- 5);
+			int charStart = markerRegion.getOffset();
+			int charEnd = markerRegion.getOffset() + markerRegion.getLength();
+			String path = iPath.toString();
+			for (IMarker aMarker : allMarkers) {
+				//Marker
+				String markerMessage = (String)aMarker.getAttribute(IMarker.MESSAGE);
+				//remove 'fsm '
+				markerMessage = markerMessage.substring(5, markerMessage.length());
+				int markerLine = (int)aMarker.getAttribute(IMarker.LINE_NUMBER);
+				String markerPath = (String)aMarker.getAttribute(IMarker.SOURCE_ID);
+				String[] tmp = markerPath.split("/");
+				String markerClassName = tmp[tmp.length-1].substring(0, className.length()- 5);
+				int markerCharStart = (int)aMarker.getAttribute(IMarker.CHAR_START);
+				int markerCharEnd = (int)aMarker.getAttribute(IMarker.CHAR_END);
+				
+				if (markerLine == lineNum + 1 && markerPath == path) {
+					if (markerMessage != theLine || markerCharStart != charStart || markerCharEnd != charEnd) {
+						String oldKey = markerClassName + markerMessage + String.valueOf(markerLine);
+						String newKey = className + theLine + String.valueOf(lineNum + 1);
+						
+						//delete old marker
+						aMarker.delete();
+						//and its key...
+						plantMarkerKey.remove(oldKey);
+						
+						//create new marker
+						addTask(theLine, lineNum, iPath,region);
+						// and its new key
+						plantMarkerKey.add(newKey);
+						return true;
+					}
+				}
+			}
+				
 		} catch (CoreException e) {
 			System.out.println("Failed to initialise keys");
 		} catch (BadLocationException e) {
 			System.out.println("Couldnt find line in docuent");
 		}
+		return false;
+
 	}
 
 	// TODO: onStartup initialize keylist with FSM bookmarks
 	// Delete keys on marker deletion?
-	private void createKey(String theLine, int lineNum, IPath path, boolean toggle, IRegion region) {
+	private void createKey(String theLine, int lineNum, IPath path, IRegion region, IDocument document, IResource root) {
 		if (!validateLine(theLine))
 			return;
 		String className = path.toFile().getName();
@@ -116,6 +152,10 @@ public class TextDiagramHelper {
 			// System.out.println("Key exists: " + key);
 			return;
 		}
+		if (possibleChangedMarker(theLine, lineNum, path, region, document, root)) {
+			return;
+		}
+		//else brand new line so create new marker and key
 		plantMarkerKey.add(key);
 		addTask(theLine, lineNum, path, region);
 	}
@@ -302,8 +342,10 @@ public class TextDiagramHelper {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot wsRoot = workspace.getRoot();
 		IResource root = wsRoot.findMember(path);
-		boolean toggle = true;
-		initializeKeys(root, path, document);
+		if (toggle) {
+			initializeKeys(wsRoot, path, document);
+			toggle = false;
+		}
 		
 	
 		
@@ -368,7 +410,7 @@ public class TextDiagramHelper {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
 						IRegion markerRegion = finder.find(0, line, true, true, false, false);
 
-						createKey(line, lineNum, path, toggle, markerRegion);
+						createKey(line, lineNum, path, markerRegion, document, root);
 						
 							
 						addToList(line, lineNum, className, result, doneStates);
@@ -405,7 +447,6 @@ public class TextDiagramHelper {
 					
 					}
 					markerAttributes.put(IMarker.CHAR_START, start.getOffset());
-					initializeKeys(root, path, document);
 
 					return result;
 				}
