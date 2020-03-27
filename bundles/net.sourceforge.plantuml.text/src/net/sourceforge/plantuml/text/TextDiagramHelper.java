@@ -11,6 +11,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
@@ -67,7 +69,6 @@ public class TextDiagramHelper {
 	
 	//initialize all fsm markers made in previous sessions
 	private void initializeKeys(IResource resource, IPath path, IDocument document) {
-		System.out.println("Initializing keys");
 		try {
 			allMarkers = resource.findMarkers(IMarker.BOOKMARK, false, IResource.DEPTH_ZERO);
 
@@ -83,7 +84,6 @@ public class TextDiagramHelper {
 					int markerCharEnd = (int)aMarker.getAttribute(IMarker.CHAR_END);
 					String className = path.toFile().getName();
 					String key = className + theLine + String.valueOf(lineNum) + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);;
-					System.out.println("adding key: " + key);
 					plantMarkerKey.add(key);
 				}
 			}
@@ -93,8 +93,6 @@ public class TextDiagramHelper {
 	}
 
 	private boolean possibleChangedMarker(String theLine, int lineNum, IPath iPath, IRegion region, IResource root, int charStart, int charEnd) {
-		System.out.println();
-		System.out.println("In possibleChanged marker");
 		try {
 			allMarkers = root.findMarkers(IMarker.BOOKMARK, false, IResource.DEPTH_ZERO);
 			
@@ -117,15 +115,9 @@ public class TextDiagramHelper {
 				int markerCharEnd = (int)aMarker.getAttribute(IMarker.CHAR_END);
 				
 				if (markerLine == (lineNum + 1) && markerPath.equals(path)) {
-
-					System.out.println("first one passed both");
 					if (!markerMessage.equals(theLine) || markerCharStart != charStart || markerCharEnd != charEnd) {
 						String oldKey = markerClassName + markerMessage + String.valueOf(markerLine)  + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);
 						String newKey = className + theLine + String.valueOf(lineNum + 1) + String.valueOf(charStart) +  String.valueOf(charEnd);
-						System.out.println();
-						System.out.println("Reconfiguring key.. ");
-						System.out.println("Old key:" + oldKey);
-						System.out.println("New key: " + newKey);
 
 						//delete old marker
 						aMarker.delete();
@@ -141,18 +133,10 @@ public class TextDiagramHelper {
 				}
 				
 				if (markerPath.equals(path) && markerMessage.equals(theLine)) {
-					
-						System.out.println("second config key2");
-
-
 					if (markerLine != lineNum + 1 || markerCharStart != charStart || markerCharEnd != charEnd) {
 						String oldKey = markerClassName + markerMessage + String.valueOf(markerLine)  + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);
 						String newKey = className + theLine + String.valueOf(lineNum + 1) + String.valueOf(charStart) +  String.valueOf(charEnd);
-						
-						System.out.println();
-						System.out.println("Reconfiguring key.. ");
-						System.out.println("Old key:" + oldKey);
-						System.out.println("New key: " + newKey);
+	
 						//delete old marker
 						aMarker.delete();
 						//and its key...
@@ -192,16 +176,12 @@ public class TextDiagramHelper {
 			
 			String key = className + theLine + String.valueOf(lineNum + 1) + String.valueOf(charStart) + String.valueOf(charEnd);
 			if (plantMarkerKey.contains(key)) {
-				System.out.println();
-				System.out.println("Key exists: " + key);
 				return;
 			}
 			if (possibleChangedMarker(theLine, lineNum, path, region, root, charStart, charEnd)) {
 				return;
 			}
 			//else brand new line so create new marker and key
-			System.out.println();
-			System.out.println("CREATING NEW KEY ENITRELY: " + key);
 			plantMarkerKey.add(key);
 			addTask(theLine, lineNum, path, region);
 		}catch (BadLocationException e) {
@@ -272,24 +252,34 @@ public class TextDiagramHelper {
 		StringBuilder stateLines = new StringBuilder();
 		
 		for (String theLine : diagramText.keySet()) {
-	    	if (theLine.contains("->"))
-	    		continue;
-	    	if (theLine.contains(stateName)) { 
+//	    	if (theLine.contains("->"))
+//	    		continue;
+	    	if (isContain(theLine, stateName)) { 
 	    		stateLines.append(diagramText.get(theLine) + ",");
 	    	}
 	    }
 		return stateLines;
 	}
 
-	private static String backwardStateLink(String stateName, String className, int lineNum) {		
-		return "state " + stateName + "[["+className+"#FSM#"+ lineNum +"]]";
+	private static String backwardStateLink(String stateName, String className, int lineNum) {
+		String test = "state " + stateName + "[["+className+"#FSM#state#"+ lineNum +"]]";
+		System.out.println(test);
+		return test;
 
 	}
 
 	private String backwardTransitionLink(String aLine, String className, int lineNum) {
-		return aLine + " : " + "[["+className+"#FSM#"+lineNum+"]]";
+		return aLine + " : " + "[["+className+"#FSM#transition#"+lineNum+"]]";
 
 	}
+	
+	//from --https://stackoverflow.com/questions/25417363/java-string-contains-matches-exact-word/25418057
+	 private static boolean isContain(String source, String subItem){
+         String pattern = "\\b"+subItem+"\\b";
+         Pattern p=Pattern.compile(pattern);
+         Matcher m=p.matcher(source);
+         return m.find();
+    }
 
 	
 	private void displayMarkers(String stateName, String fileName, IResource root)  {
@@ -319,8 +309,23 @@ public class TextDiagramHelper {
 		        		  if (markerLine == intLineNums[i]) {
 		        			
 		        			  try {
+		        				  String message = (String)m.getAttribute(IMarker.MESSAGE);
+		        				  message = message.substring(5, message.length());
 		        				  int charStart =  (int)m.getAttribute(IMarker.CHAR_START); 
 				    		      int charEnd =  (int)m.getAttribute(IMarker.CHAR_END);
+		        				  if (message.contains("->")) {
+		        					  String[] transitionSplit = message.split("->", 2);
+		        					  if (transitionSplit[0].contains(stateName)) {
+		        						  charEnd = charStart + stateName.length();
+		        					  }
+		        					  if (transitionSplit[1].contains(stateName)) {
+		        						  charStart = charStart + message.indexOf(stateName) ;
+		        						  charEnd = charStart + stateName.length();
+		        					  }
+		        					
+		        				  }
+		        				
+		        				 
 				    		      IMarker marker = root.createMarker("FSM.MARKER");
 				    		      marker.setAttribute(IMarker.LINE_NUMBER, markerLine);
 				    		      marker.setAttribute(IMarker.SOURCE_ID, path);
@@ -360,25 +365,23 @@ public class TextDiagramHelper {
 		
 	}
 	
-	//create List of states..
-	private static void addToList(String line, int lineNum, String className, StringBuilder result, HashSet<String> doneStates) {
-		
+	private List<String> getTransitionStateName(String line) {
 		String stateName;
-	    String[] states = line.split("State");
+		List<String> stateNames = new ArrayList<String>();
+		String[] splitLine = line.split("State");
 	    String[] tmp;
-	    
-	    for  (int i = 1; i<states.length; i++) {
-	    	states[i] = states[i].replace(":", "");
-	    	tmp = states[i].split(" ", 2);
+	    for  (int i = 1; i<splitLine.length; i++) {
+	    	splitLine[i] = splitLine[i].replace(":", "");
+	    	tmp = splitLine[i].split(" ", 2);
 	    	stateName = "State" + tmp[0];
-	    
-	    	if (!doneStates.contains(stateName)) {
-	    		result.append(backwardStateLink(stateName, className, lineNum));
-	    		result.append("\n");
-	    		doneStates.add(stateName);
-	    	}
+	    	stateNames.add(stateName);
 	    }
+	    return stateNames;
+
 	}
+	
+	//create List of states..
+	
 
 	
 
@@ -433,7 +436,8 @@ public class TextDiagramHelper {
 					System.out.println("Selected line = " + selectedLine);
 					
 				
-					
+					HashSet<String> doneStates = new HashSet<String>();
+
 				
 
 					
@@ -448,6 +452,14 @@ public class TextDiagramHelper {
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
 						diagramText.put(line, lineNum + 1);
+						
+						if(!line.contains("->")) {
+							String stateName = getStateName(line);
+
+							if (!doneStates.contains(stateName)) {
+					    		doneStates.add(stateName);
+					    	}
+						}
 						if (ensureFSM(line)) {
 								fsm = true;
 						}
@@ -457,7 +469,8 @@ public class TextDiagramHelper {
 					className = className.substring(0, className.length()- 5);
 					
 					removeHighlights(root);
-					HashSet<String> doneStates = new HashSet<String>();
+					List<String> transitionStates = new ArrayList<String>();
+					List<String> transitionStateNames = new ArrayList<String>();
 
 //					System.out.println("Package: "+className.getPackage());
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
@@ -465,32 +478,61 @@ public class TextDiagramHelper {
 						IRegion markerRegion = finder.find(0, line, true, true, false, false);
 
 						createKey(line, lineNum, path, markerRegion, document, root);
-						
+
 							
-						addToList(line, lineNum, className, result, doneStates);
-						
 						//add transitions and their links
 						if (line.contains("->") && fsm)  {
+ 							if (line.contains("State")) {
+ 								transitionStateNames = getTransitionStateName(line);
+ 								for (int i =0 ; i<transitionStateNames.size(); i++) {
+ 									if (!doneStates.contains(transitionStateNames.get(i))) {
+ 										System.out.println(transitionStateNames.get(i));
+ 										transitionStates.add(transitionStateNames.get(i));
+ 										System.out.println("appending"
+ 												+ "");
+ 										System.out.println(lineNum);
+ 										System.out.println(backwardStateLink(transitionStateNames.get(i), className, lineNum));
+ 										result.append(backwardStateLink(transitionStateNames.get(i), className, lineNum)); 
+ 									}
+ 								}
+								
+								
+							}
 							if (selectedLineNum == lineNum) {
 								String colorTransition = forwardTransitionLink(selectedLine);
 								result.append(backwardTransitionLink(colorTransition, className, lineNum));
-							} else
+								for (int i =0 ; i<transitionStateNames.size(); i++) {
+									if (transitionStates.contains(transitionStateNames.get(i)))
+										displayMarkers(transitionStateNames.get(i), className, root);
+								}
+							}
+							else
 								result.append(backwardTransitionLink(line, className, lineNum));
 						}
 						//add states and their links
 						else if (line.contains("State") && fsm) {
+							String stateName = getStateName(line);
+
+						
+
 							if (selectedLineNum == lineNum) {
-								String stateName = getStateName(line);
 								String colorState = forwardStateLink(selectedLine);
 
 								result.append(line);
 								result.append("\n");
+								result.append(backwardStateLink(stateName, className, lineNum));
+					    		result.append("\n");
+								
 								result.append(colorState);
 								displayMarkers(stateName, className, root);
 
 							} else {
-								System.out.println("line not selected");
 								result.append(line);
+					    		result.append("\n");
+
+								result.append(backwardStateLink(stateName, className, lineNum));
+					    		result.append("\n");
+
 							}
 						} else
 							result.append(line);
@@ -500,6 +542,7 @@ public class TextDiagramHelper {
 						}
 					
 					}
+					
 					markerAttributes.put(IMarker.CHAR_START, start.getOffset());
 
 					return result;

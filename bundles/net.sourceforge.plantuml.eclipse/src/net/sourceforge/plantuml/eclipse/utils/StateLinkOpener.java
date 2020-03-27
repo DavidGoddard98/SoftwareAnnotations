@@ -47,11 +47,13 @@ public class StateLinkOpener implements ILinkOpener {
 	    	  	file = file.substring(0, file.length() - 5);
 	    	  	
 	    	  	int markerLine = (int)m.getAttribute(IMarker.LINE_NUMBER);
-		    	int linkLineNum = Integer.parseInt(linkToArray[2]) + 1;
+		    	int linkLineNum = Integer.parseInt(linkToArray[3]) + 1;
+		    	String message = (String)m.getAttribute(IMarker.MESSAGE);
 		
 	    	  	if (markerLine == linkLineNum && file.equals(fileName)) {
-	    	  		IDE.openEditor(page, m);
-	    		  	break;
+	    	  		
+	    	  			IDE.openEditor(page, m);
+	    	  			break;
 	    	  	}
 		    }
 		} catch (CoreException e) {
