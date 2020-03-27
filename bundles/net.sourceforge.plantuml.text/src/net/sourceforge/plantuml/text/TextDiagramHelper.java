@@ -67,6 +67,7 @@ public class TextDiagramHelper {
 	
 	//initialize all fsm markers made in previous sessions
 	private void initializeKeys(IResource resource, IPath path, IDocument document) {
+		System.out.println("Initializing keys");
 		try {
 			allMarkers = resource.findMarkers(IMarker.BOOKMARK, false, IResource.DEPTH_ZERO);
 
@@ -77,10 +78,12 @@ public class TextDiagramHelper {
 
 				if (subString.equals("FSM")) {
 					String theLine = message.substring(5, message.length());
-					int lineNum = aMarker.getAttribute(IMarker.LINE_NUMBER, 0);
-
+					int lineNum = (int)aMarker.getAttribute(IMarker.LINE_NUMBER);
+					int markerCharStart = (int)aMarker.getAttribute(IMarker.CHAR_START);
+					int markerCharEnd = (int)aMarker.getAttribute(IMarker.CHAR_END);
 					String className = path.toFile().getName();
-					String key = className + theLine + String.valueOf(lineNum);
+					String key = className + theLine + String.valueOf(lineNum) + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);;
+					System.out.println("adding key: " + key);
 					plantMarkerKey.add(key);
 				}
 			}
@@ -89,17 +92,17 @@ public class TextDiagramHelper {
 		}
 	}
 
-	private boolean possibleChangedMarker(String theLine, int lineNum, IPath iPath, IRegion region, IDocument document, IResource root) {
+	private boolean possibleChangedMarker(String theLine, int lineNum, IPath iPath, IRegion region, IResource root, int charStart, int charEnd) {
+		System.out.println();
+		System.out.println("In possibleChanged marker");
 		try {
 			allMarkers = root.findMarkers(IMarker.BOOKMARK, false, IResource.DEPTH_ZERO);
-			final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
-			IRegion markerRegion = finder.find(0, theLine, true, true, false, false);
-
+			
+			
 			String className = iPath.toFile().getName(); 
 			//remove .java
-			className = className.substring(0, className.length()- 5);
-			int charStart = markerRegion.getOffset();
-			int charEnd = markerRegion.getOffset() + markerRegion.getLength();
+			
+			
 			String path = iPath.toString();
 			for (IMarker aMarker : allMarkers) {
 				//Marker
@@ -109,15 +112,21 @@ public class TextDiagramHelper {
 				int markerLine = (int)aMarker.getAttribute(IMarker.LINE_NUMBER);
 				String markerPath = (String)aMarker.getAttribute(IMarker.SOURCE_ID);
 				String[] tmp = markerPath.split("/");
-				String markerClassName = tmp[tmp.length-1].substring(0, className.length()- 5);
+				String markerClassName = tmp[tmp.length-1];
 				int markerCharStart = (int)aMarker.getAttribute(IMarker.CHAR_START);
 				int markerCharEnd = (int)aMarker.getAttribute(IMarker.CHAR_END);
 				
-				if (markerLine == lineNum + 1 && markerPath == path) {
-					if (markerMessage != theLine || markerCharStart != charStart || markerCharEnd != charEnd) {
-						String oldKey = markerClassName + markerMessage + String.valueOf(markerLine);
-						String newKey = className + theLine + String.valueOf(lineNum + 1);
-						
+				if (markerLine == (lineNum + 1) && markerPath.equals(path)) {
+
+					System.out.println("first one passed both");
+					if (!markerMessage.equals(theLine) || markerCharStart != charStart || markerCharEnd != charEnd) {
+						String oldKey = markerClassName + markerMessage + String.valueOf(markerLine)  + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);
+						String newKey = className + theLine + String.valueOf(lineNum + 1) + String.valueOf(charStart) +  String.valueOf(charEnd);
+						System.out.println();
+						System.out.println("Reconfiguring key.. ");
+						System.out.println("Old key:" + oldKey);
+						System.out.println("New key: " + newKey);
+
 						//delete old marker
 						aMarker.delete();
 						//and its key...
@@ -130,13 +139,39 @@ public class TextDiagramHelper {
 						return true;
 					}
 				}
+				
+				if (markerPath.equals(path) && markerMessage.equals(theLine)) {
+					
+						System.out.println("second config key2");
+
+
+					if (markerLine != lineNum + 1 || markerCharStart != charStart || markerCharEnd != charEnd) {
+						String oldKey = markerClassName + markerMessage + String.valueOf(markerLine)  + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);
+						String newKey = className + theLine + String.valueOf(lineNum + 1) + String.valueOf(charStart) +  String.valueOf(charEnd);
+						
+						System.out.println();
+						System.out.println("Reconfiguring key.. ");
+						System.out.println("Old key:" + oldKey);
+						System.out.println("New key: " + newKey);
+						//delete old marker
+						aMarker.delete();
+						//and its key...
+						plantMarkerKey.remove(oldKey);
+						
+						//create new marker
+						addTask(theLine, lineNum, iPath,region);
+						// and its new key
+						plantMarkerKey.add(newKey);
+						return true;
+					}
+				}
+				
 			}
 				
 		} catch (CoreException e) {
 			System.out.println("Failed to initialise keys");
-		} catch (BadLocationException e) {
-			System.out.println("Couldnt find line in docuent");
-		}
+		} 
+		System.out.println("Nothing to report here");
 		return false;
 
 	}
@@ -144,20 +179,34 @@ public class TextDiagramHelper {
 	// TODO: onStartup initialize keylist with FSM bookmarks
 	// Delete keys on marker deletion?
 	private void createKey(String theLine, int lineNum, IPath path, IRegion region, IDocument document, IResource root) {
-		if (!validateLine(theLine))
-			return;
-		String className = path.toFile().getName();
-		String key = className + theLine + String.valueOf(lineNum + 1);
-		if (plantMarkerKey.contains(key)) {
-			// System.out.println("Key exists: " + key);
-			return;
+		try {
+			if (!validateLine(theLine))
+				return;
+			String className = path.toFile().getName();
+			final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
+			IRegion markerRegion = finder.find(0, theLine, true, true, false, false);
+			int charStart = markerRegion.getOffset();
+			int charEnd = markerRegion.getOffset() + markerRegion.getLength();
+			
+			
+			
+			String key = className + theLine + String.valueOf(lineNum + 1) + String.valueOf(charStart) + String.valueOf(charEnd);
+			if (plantMarkerKey.contains(key)) {
+				System.out.println();
+				System.out.println("Key exists: " + key);
+				return;
+			}
+			if (possibleChangedMarker(theLine, lineNum, path, region, root, charStart, charEnd)) {
+				return;
+			}
+			//else brand new line so create new marker and key
+			System.out.println();
+			System.out.println("CREATING NEW KEY ENITRELY: " + key);
+			plantMarkerKey.add(key);
+			addTask(theLine, lineNum, path, region);
+		}catch (BadLocationException e) {
+			System.out.println("error creating key");
 		}
-		if (possibleChangedMarker(theLine, lineNum, path, region, document, root)) {
-			return;
-		}
-		//else brand new line so create new marker and key
-		plantMarkerKey.add(key);
-		addTask(theLine, lineNum, path, region);
 	}
 
 	private void addTask(String theLine, int lineNum, IPath path, IRegion region) {
@@ -343,9 +392,14 @@ public class TextDiagramHelper {
 		IWorkspaceRoot wsRoot = workspace.getRoot();
 		IResource root = wsRoot.findMember(path);
 		if (toggle) {
-			initializeKeys(wsRoot, path, document);
+			initializeKeys(root, path, document);
 			toggle = false;
 		}
+		
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		System.out.println("key set size: " + plantMarkerKey.size());
 		
 	
 		
