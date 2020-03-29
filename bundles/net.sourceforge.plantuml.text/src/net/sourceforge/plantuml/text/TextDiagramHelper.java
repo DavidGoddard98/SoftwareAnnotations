@@ -233,33 +233,15 @@ public class TextDiagramHelper {
 
 
 	//Link from the editor to the diagram
-	private String forwardStateLink(String selectedLine) {
-		String colorState = "";
-
-		for (int i = 0; i < selectedLine.length(); i++) {
-			if (selectedLine.charAt(i) == ' ' && selectedLine.charAt(i + 1) == ':') {
-				colorState = "state " + selectedLine.substring(0, i) + " #Cyan";
-			}
-		}
-		return colorState;
+	private String forwardStateLink(String stateName) {
+		return "state " + stateName + " #Cyan";
 	}
 
 	//Link from the editor to the diagram
 	private String forwardTransitionLink(String selectedLine) {
 		String colorTransition = "";
-		int indexOfTrans = 0;
-		char tmp = 'c';
-
-		for (int i = 0; i < selectedLine.length(); i++) {
-			char c = selectedLine.charAt(i);
-			if (c == '>' && tmp == '-') {
-				indexOfTrans = selectedLine.indexOf('-');
-				colorTransition = selectedLine.substring(0, indexOfTrans) + "-[thickness=5,#blue]"
-						+ selectedLine.substring(indexOfTrans + 1, selectedLine.length()) ;
-				break;
-			}
-			tmp = c;
-		}
+		int indexOfArrow = selectedLine.indexOf("->");
+		colorTransition = selectedLine.substring(0, indexOfArrow) +  "-[thickness=5,#blue]>" + selectedLine.substring(indexOfArrow +2, selectedLine.length());
 		return colorTransition;
 	}
 	
@@ -413,7 +395,78 @@ public class TextDiagramHelper {
 	    }
 	}
 	
+	public String enhanceStateMachine(String line, int lineNum, StringBuilder result, int selectionStart, IDocument document, IPath path,  String lastStateName, IResource root ) throws BadLocationException {
+		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
 
+		IRegion markerRegion = finder.find(0, line, true, true, false, false);
+		
+		
+		createKey(line, lineNum, path, markerRegion, document, root);
+		
+		String className = path.toFile().getName();
+		className = className.substring(0, className.length()- 5);
+		
+		int selectedLineNum = document.getLineOfOffset(selectionStart);
+		String selectedLine = document
+				.get(document.getLineOffset(selectedLineNum), document.getLineLength(selectedLineNum))
+				.trim();
+		
+		String stateSelected = getStateName(selectedLine);
+		
+		//add transitions and their links
+		if (line.contains("->"))  {
+				if (line.contains("State")) {
+//					transitionStateNames = getTransitionStateName(line);
+//					for (int i =0 ; i<transitionStateNames.size(); i++) {
+//						if (!doneStates.contains(transitionStateNames.get(i))) {
+//							System.out.println(transitionStateNames.get(i));
+//							transitionStates.add(transitionStateNames.get(i));
+//							System.out.println("appending"
+//									+ "");
+//							System.out.println(lineNum);
+//							System.out.println(backwardStateLink(transitionStateNames.get(i), className, lineNum));
+//							result.append(backwardStateLink(transitionStateNames.get(i), className, lineNum)); 
+//						}
+//					}
+				
+				
+			}
+			if (selectedLineNum == lineNum) {
+				String colorTransition = forwardTransitionLink(selectedLine);
+				result.append(backwardTransitionLink(colorTransition, className, lineNum));
+//				for (int i =0 ; i<transitionStateNames.size(); i++) {
+//					if (transitionStates.contains(transitionStateNames.get(i)))
+//						displayMarkers(transitionStateNames.get(i), className, root);
+//				}
+			}
+			else
+				result.append(backwardTransitionLink(line, className, lineNum));
+		}
+		//add states and their links
+		else if (line.contains("State")) {
+			String stateName = getStateName(line);
+
+			
+			if (selectedLineNum == lineNum || stateName.equals(stateSelected) ) {
+				String colorState = forwardStateLink(stateName);
+	    		
+				result.append(line);
+				result.append("\n");
+				result.append(backwardStateLink(stateName, className, lineNum));
+	    		result.append("\n");
+				result.append(colorState);
+				
+				displayMarkers(stateName, className, root);
+				lastStateName = stateName;
+
+			} else {
+				result.append(backwardStateLink(stateName, className, lineNum));
+	    		result.append("\n");
+				result.append(line);
+			}
+		}
+		return lastStateName;
+	}
 	
 
 
@@ -425,13 +478,15 @@ public class TextDiagramHelper {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot wsRoot = workspace.getRoot();
 		IResource root = wsRoot.findMember(path);
+		
+		
+		/////////////////////////////////////////
 		if (toggle) {
 			initializeKeys(root, path, document);
 			toggle = false;
 		}
+		/////////////////////////////////////////
 		
-		
-		System.out.println("NUM KEYS:" + plantMarkerKey.size());
 	
 		
 		try {
@@ -455,15 +510,7 @@ public class TextDiagramHelper {
 
 				final IRegion end = finder.find(startOffset + start.getLength(), suffixRegex, true, true, false, true);
 				if (end != null && end.getOffset() >= selectionStart) {
-
-					int selectedLineNum = document.getLineOfOffset(selectionStart);
-					String selectedLine = document
-							.get(document.getLineOffset(selectedLineNum), document.getLineLength(selectedLineNum))
-							.trim();
-	
-					
 				
-					HashSet<String> doneStates = new HashSet<String>();
 
 
 					final int endOffset = end.getOffset() + end.getLength();
@@ -472,8 +519,8 @@ public class TextDiagramHelper {
 							document.getNumberOfLines());
 
 					
-					String className = path.toFile().getName();
-					className = className.substring(0, className.length()- 5);
+					///////////////////////////////////////////////////////////////////////////////////////////////////////////
+					HashSet<String> doneStates = new HashSet<String>();
 					
 					diagramText.clear();
 					boolean fsm = false;
@@ -493,89 +540,40 @@ public class TextDiagramHelper {
 								fsm = true;
 						}
 					}
-
-					
 					
 					removeHighlights(root);
-					List<String> transitionStates = new ArrayList<String>();
-					List<String> transitionStateNames = new ArrayList<String>();
-					String lastStateName = "";
-
-//					System.out.println("Package: "+className.getPackage());
-					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
-						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
-						IRegion markerRegion = finder.find(0, line, true, true, false, false);
-						
+//					List<String> transitionStates = new ArrayList<String>();
+//					List<String> transitionStateNames = new ArrayList<String>();
 					
-						createKey(line, lineNum, path, markerRegion, document, root);
+					if (fsm) {
+						String lastStateName = "";
 
+						for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
+							final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
 							
-						//add transitions and their links
-						if (line.contains("->") && fsm)  {
- 							if (line.contains("State")) {
-// 								transitionStateNames = getTransitionStateName(line);
-// 								for (int i =0 ; i<transitionStateNames.size(); i++) {
-// 									if (!doneStates.contains(transitionStateNames.get(i))) {
-// 										System.out.println(transitionStateNames.get(i));
-// 										transitionStates.add(transitionStateNames.get(i));
-// 										System.out.println("appending"
-// 												+ "");
-// 										System.out.println(lineNum);
-// 										System.out.println(backwardStateLink(transitionStateNames.get(i), className, lineNum));
-// 										result.append(backwardStateLink(transitionStateNames.get(i), className, lineNum)); 
-// 									}
-// 								}
-								
-								
-							}
-							if (selectedLineNum == lineNum) {
-								String colorTransition = forwardTransitionLink(selectedLine);
-								result.append(backwardTransitionLink(colorTransition, className, lineNum));
-//								for (int i =0 ; i<transitionStateNames.size(); i++) {
-//									if (transitionStates.contains(transitionStateNames.get(i)))
-//										displayMarkers(transitionStateNames.get(i), className, root);
-//								}
-							}
-							else
-								result.append(backwardTransitionLink(line, className, lineNum));
-						}
-						//add states and their links
-						else if (line.contains("State") && fsm) {
-							String stateName = getStateName(line);
-
-						
-
-							if (selectedLineNum == lineNum || stateName.equals(lastStateName) ) {
-								String colorState = forwardStateLink(selectedLine);
-					    		
-								result.append(line);
+							lastStateName = enhanceStateMachine(line, lineNum, result, selectionStart, document, path,  lastStateName, root );
+							if (!line.endsWith("\n")) {
 								result.append("\n");
-								result.append(backwardStateLink(stateName, className, lineNum));
-					    		result.append("\n");
-							
-								result.append(colorState);
-								displayMarkers(stateName, className, root);
-								lastStateName = stateName;
-
-							} else {
-								result.append(backwardStateLink(stateName, className, lineNum));
-					    		result.append("\n");
-								result.append(line);
-								
-					    		
-
 							}
-						} else
-							result.append(line);
-						
-						if (!line.endsWith("\n")) {
-							result.append("\n");
 						}
-					
+					////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+					} else {
+						for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
+							final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
+
+								
+						
+							result.append(line);
+							
+							if (!line.endsWith("\n")) {
+								result.append("\n");
+							}
+						}
 					}
+						
+					System.out.println(result);
 					
 					markerAttributes.put(IMarker.CHAR_START, start.getOffset());
-
 					return result;
 				}
 			}
