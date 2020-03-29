@@ -85,6 +85,15 @@
 			fileExtensions="adoc,asciidoc"
             >
       </textDiagramProvider>
+
+      <textDiagramProvider
+            id="net.sourceforge.plantuml.text.statemachineDiagramProvider"
+            label="State Machines diagrams in text editor"
+            diagramPrefix="@start_state_machine"
+            diagramSuffix="@end_state_machine"
+            >
+      </textDiagramProvider>
+
    </extension>
 
 </plugin>

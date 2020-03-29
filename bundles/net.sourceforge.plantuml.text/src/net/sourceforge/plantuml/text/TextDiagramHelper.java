@@ -92,7 +92,7 @@ public class TextDiagramHelper {
 		}
 	}
 
-	private boolean possibleChangedMarker(String theLine, int lineNum, IPath iPath, IRegion region, IResource root, int charStart, int charEnd) {
+	private boolean possibleChangedMarker(String theLine, int lineNum, IPath iPath, IDocument document, IRegion region, IResource root, int charStart, int charEnd) {
 		try {
 			allMarkers = root.findMarkers(IMarker.BOOKMARK, false, IResource.DEPTH_ZERO);
 			
@@ -113,6 +113,8 @@ public class TextDiagramHelper {
 				String markerClassName = tmp[tmp.length-1];
 				int markerCharStart = (int)aMarker.getAttribute(IMarker.CHAR_START);
 				int markerCharEnd = (int)aMarker.getAttribute(IMarker.CHAR_END);
+				
+				String sameLineInDoc = document.get(document.getLineOffset(markerLine-1), document.getLineLength(markerLine-1)).trim();
 				
 				if (markerLine == (lineNum + 1) && markerPath.equals(path)) {
 					if (!markerMessage.equals(theLine) || markerCharStart != charStart || markerCharEnd != charEnd) {
@@ -150,11 +152,24 @@ public class TextDiagramHelper {
 					}
 				}
 				
+				//line deleted - delete marker and key
+				if (!sameLineInDoc.equals(markerMessage)) {
+					System.out.println("Deleting empty line");
+					String oldKey = markerClassName + markerMessage + String.valueOf(markerLine)  + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);
+					
+					//delete key
+					plantMarkerKey.remove(oldKey);
+					//and marker 
+					aMarker.delete();
+				}
+				
 			}
 				
 		} catch (CoreException e) {
 			System.out.println("Failed to initialise keys");
-		} 
+		} catch (BadLocationException e) {
+			System.out.println("Cant find same line in doc");
+		}
 		System.out.println("Nothing to report here");
 		return false;
 
@@ -178,7 +193,7 @@ public class TextDiagramHelper {
 			if (plantMarkerKey.contains(key)) {
 				return;
 			}
-			if (possibleChangedMarker(theLine, lineNum, path, region, root, charStart, charEnd)) {
+			if (possibleChangedMarker(theLine, lineNum, path, document, region, root, charStart, charEnd)) {
 				return;
 			}
 			//else brand new line so create new marker and key
@@ -263,7 +278,6 @@ public class TextDiagramHelper {
 
 	private static String backwardStateLink(String stateName, String className, int lineNum) {
 		String test = "state " + stateName + "[["+className+"#FSM#state#"+ lineNum +"]]";
-		System.out.println(test);
 		return test;
 
 	}
@@ -416,11 +430,8 @@ public class TextDiagramHelper {
 			toggle = false;
 		}
 		
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		System.out.println("key set size: " + plantMarkerKey.size());
 		
+		System.out.println("NUM KEYS:" + plantMarkerKey.size());
 	
 		
 		try {
@@ -449,15 +460,11 @@ public class TextDiagramHelper {
 					String selectedLine = document
 							.get(document.getLineOffset(selectedLineNum), document.getLineLength(selectedLineNum))
 							.trim();
-					
-					System.out.println("Selected line = " + selectedLine);
+	
 					
 				
 					HashSet<String> doneStates = new HashSet<String>();
 
-				
-
-					
 
 					final int endOffset = end.getOffset() + end.getLength();
 					StringBuilder result = new StringBuilder();
@@ -498,25 +505,26 @@ public class TextDiagramHelper {
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
 						IRegion markerRegion = finder.find(0, line, true, true, false, false);
-
+						
+					
 						createKey(line, lineNum, path, markerRegion, document, root);
 
 							
 						//add transitions and their links
 						if (line.contains("->") && fsm)  {
  							if (line.contains("State")) {
- 								transitionStateNames = getTransitionStateName(line);
- 								for (int i =0 ; i<transitionStateNames.size(); i++) {
- 									if (!doneStates.contains(transitionStateNames.get(i))) {
- 										System.out.println(transitionStateNames.get(i));
- 										transitionStates.add(transitionStateNames.get(i));
- 										System.out.println("appending"
- 												+ "");
- 										System.out.println(lineNum);
- 										System.out.println(backwardStateLink(transitionStateNames.get(i), className, lineNum));
- 										result.append(backwardStateLink(transitionStateNames.get(i), className, lineNum)); 
- 									}
- 								}
+// 								transitionStateNames = getTransitionStateName(line);
+// 								for (int i =0 ; i<transitionStateNames.size(); i++) {
+// 									if (!doneStates.contains(transitionStateNames.get(i))) {
+// 										System.out.println(transitionStateNames.get(i));
+// 										transitionStates.add(transitionStateNames.get(i));
+// 										System.out.println("appending"
+// 												+ "");
+// 										System.out.println(lineNum);
+// 										System.out.println(backwardStateLink(transitionStateNames.get(i), className, lineNum));
+// 										result.append(backwardStateLink(transitionStateNames.get(i), className, lineNum)); 
+// 									}
+// 								}
 								
 								
 							}
@@ -545,10 +553,8 @@ public class TextDiagramHelper {
 								result.append(backwardStateLink(stateName, className, lineNum));
 					    		result.append("\n");
 							
-								System.out.println(stateName);
 								result.append(colorState);
 								displayMarkers(stateName, className, root);
-								System.out.println(result);
 								lastStateName = stateName;
 
 							} else {
@@ -649,7 +655,8 @@ public class TextDiagramHelper {
 		}
 		return null;
 	}
-
+	
+	//FSM version
 	public Iterator<ISelection> getDiagramText(final IDocument document) {
 
 		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
@@ -663,10 +670,10 @@ public class TextDiagramHelper {
 					break;
 				}
 				final int diagramStart = start.getOffset() + start.getLength() + 1,
-						diagramLine = document.getLineOfOffset(diagramStart);
+						  diagramLine = document.getLineOfOffset(diagramStart);
 				final String line = document
 						.get(document.getLineOffset(diagramLine), document.getLineLength(diagramLine)).trim();
-				final ISelection selection = new TextSelection(start.getOffset() + start.getLength(), 0) {
+				final ISelection selection = new TextSelection(start.getOffset() , end.getOffset() - start.getOffset()) {
 					@Override
 					public String toString() {
 						return line;
@@ -679,4 +686,35 @@ public class TextDiagramHelper {
 		}
 		return selections.iterator();
 	}
+
+	//original version
+//	public Iterator<ISelection> getDiagramText(final IDocument document) {
+//
+//		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
+//		int selectionStart = 0;
+//		final Collection<ISelection> selections = new ArrayList<ISelection>();
+//		try {
+//			while (true) {
+//				final IRegion start = finder.find(selectionStart, prefixRegex, true, true, false, true);
+//				final IRegion end = finder.find(selectionStart, suffixRegex, true, true, false, true);
+//				if (start == null || end == null) {
+//					break;
+//				}
+//				final int diagramStart = start.getOffset() + start.getLength() + 1,
+//						diagramLine = document.getLineOfOffset(diagramStart);
+//				final String line = document
+//						.get(document.getLineOffset(diagramLine), document.getLineLength(diagramLine)).trim();
+//				final ISelection selection = new TextSelection(start.getOffset() + start.getLength(), 0) {
+//					@Override
+//					public String toString() {
+//						return line;
+//					}
+//				};
+//				selections.add(selection);
+//				selectionStart = end.getOffset() + end.getLength() + 1;
+//			}
+//		} catch (final BadLocationException e) {
+//		}
+//		return selections.iterator();
+//	}
 }
