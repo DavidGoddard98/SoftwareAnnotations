@@ -13,6 +13,7 @@ import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import net.sourceforge.plantuml.eclipse.Activator;
 import net.sourceforge.plantuml.eclipse.utils.DiagramTextIteratorProvider;
 import net.sourceforge.plantuml.eclipse.utils.DiagramTextProvider2;
 import net.sourceforge.plantuml.eclipse.utils.PlantumlConstants;
@@ -41,6 +42,19 @@ public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextPro
 	protected String getEndPlantUmlRegex() {
 		return PlantumlConstants.END_UML;
 	}
+	
+	//FSM///////////////////////////////////////////////////////////////////////
+	
+	private StateTextDiagramHelper stateTextDiagramHelper = null;
+	
+	public StateTextDiagramHelper getStateTextDiagramHelper() {
+		if (stateTextDiagramHelper == null) {
+			stateTextDiagramHelper = new StateTextDiagramHelper();
+		}
+		return stateTextDiagramHelper;
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////
 
 	private TextDiagramHelper textDiagramHelper = null;
 
@@ -50,14 +64,23 @@ public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextPro
 		}
 		return textDiagramHelper;
 	}
-
+	
+	
+	
 	protected StringBuilder getDiagramTextLines(final IEditorPart editorPart, final IEditorInput editorInput, final ISelection selection, final Map<String, Object> markerAttributes) {
 		final ITextEditor textEditor = (ITextEditor) editorPart;
 		final IDocument document = textEditor.getDocumentProvider().getDocument(editorInput);
 		final int selectionStart = ((ITextSelection) (selection != null ? selection : textEditor.getSelectionProvider().getSelection())).getOffset();
-		return getTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes, editorInput);
+		//FSM/////////////////////////////////////////////////////////////////
+		String providerInfo = Activator.getDefault().getDiagramTextProviderId(this);
+		System.out.println(providerInfo);
+		if (providerInfo.equals("net.sourceforge.plantuml.text.statemachineDiagramProvider")) {
+			return getStateTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes, editorInput);
+		} else
+			return getTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes);
+		/////////////////////////////////////////////////////////////////////////
 	}
-
+	
 	public String getDiagramText(final CharSequence lines) {
 		return getDiagramText(new StringBuilder(lines.toString()));
 	}

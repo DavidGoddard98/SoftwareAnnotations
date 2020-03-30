@@ -462,8 +462,12 @@ public abstract class AbstractDiagramSourceView extends ViewPart {
 				if (supportsPart(diagramTextProvider, activePart) && (selection == null || diagramTextProvider.supportsSelection(selection))) {
 					String diagramText = null;
 					if (activePart instanceof IEditorPart && diagramTextProvider instanceof DiagramTextProvider2) {
+
 						markerAttributes.clear();
 						diagramText = ((DiagramTextProvider2) diagramTextProvider).getDiagramText((IEditorPart) activePart, selection, markerAttributes);
+						System.out.println();
+						System.out.println();
+						System.out.println(diagramText);
 					} else {
 						diagramText = getDiagramText(diagramTextProvider, activePart, selection);
 					}
