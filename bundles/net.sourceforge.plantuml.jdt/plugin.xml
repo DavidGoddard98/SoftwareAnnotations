@@ -49,43 +49,6 @@
       </linkOpener>
    </extension>
    
-   <extension
-      point="org.eclipse.ui.editors.annotationTypes">
-   <type
-         markerType="FSM.MARKER"
-         name="FSM.MARKER">
-   </type>
-</extension>
-
-<extension
-        id="FSM.MARKER"
-        name="FSM.MARKER"
-        point="org.eclipse.core.resources.markers">
-    <super
-        type="org.eclipse.core.resources.textmarker">
-    </super>
-</extension>
-
-<extension
-     point="org.eclipse.ui.editors.markerAnnotationSpecification">
-  <specification
-        annotationType="FSM.MARKER"
-        colorPreferenceKey="FSM.MARKER.COLOR"
-        colorPreferenceValue="0,125,255"
-        contributesToHeader="false"
-        highlightPreferenceKey="FSM.MARKER.highlight"
-        highlightPreferenceValue="true"
-        includeOnPreferencePage="true"
-        label="FSM.MARKER"
-        overviewRulerPreferenceKey="org.eclipse.viatra2.slice.overview"
-        overviewRulerPreferenceValue="true"
-        presentationLayer="0"
-        textPreferenceKey="org.eclipse.viatra2.slice.text"
-        textPreferenceValue="true"
-        textStylePreferenceValue="BOX"
-        verticalRulerPreferenceKey="org.eclipse.viatra2.slice.ruler"
-        verticalRulerPreferenceValue="true">
-   </specification>
-</extension>
+   
 
 </plugin>

@@ -465,9 +465,11 @@ public abstract class AbstractDiagramSourceView extends ViewPart {
 
 						markerAttributes.clear();
 						diagramText = ((DiagramTextProvider2) diagramTextProvider).getDiagramText((IEditorPart) activePart, selection, markerAttributes);
-						System.out.println();
-						System.out.println();
-						System.out.println(diagramText);
+						if (diagramText != null) {
+							System.out.println();
+							System.out.println();
+							System.out.println(diagramText);
+						}
 					} else {
 						diagramText = getDiagramText(diagramTextProvider, activePart, selection);
 					}

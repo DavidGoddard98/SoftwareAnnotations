@@ -24,6 +24,7 @@ import org.eclipse.jface.text.FindReplaceDocumentAdapter;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IFileEditorInput;
 
 public class StateTextDiagramHelper  {
@@ -33,10 +34,7 @@ public class StateTextDiagramHelper  {
 	int selectedLineNum;
 	String stateSelected;
 	
-	
-			
 	private boolean toggle = true;
-	HashMap<String, Integer> diagramText = new HashMap<String, Integer>();
 	private static HashSet<String> plantMarkerKey = new HashSet<String>();
 
 
@@ -45,9 +43,6 @@ public class StateTextDiagramHelper  {
 	
 	}
 	
-	
-	
-	
 	class StateReference extends StateTextDiagramHelper {
 		String theLine;
 		String editorLine;
@@ -55,6 +50,7 @@ public class StateTextDiagramHelper  {
 		int charStart;
 		int charEnd;
 		boolean isTransition;
+		boolean onlyTransition;
 		Transition transition;
 		
 		StateReference(String theLine, String editorLine, int lineNum, int charStart, int charEnd) {
@@ -72,6 +68,17 @@ public class StateTextDiagramHelper  {
 			this.lineNum = lineNum;
 			this.isTransition = true;
 			this.transition = transition;
+		}
+		
+		
+		StateReference(String theLine, String editorLine, int lineNum, int charStart, int charEnd, boolean onlyTransition) {
+			this.theLine = theLine;
+			this.editorLine = editorLine;
+			this.lineNum = lineNum;
+			this.charStart = charStart;
+			this.charEnd = charEnd;
+			this.isTransition = false;
+			this.onlyTransition = onlyTransition;
 		}
 		
 		StateReference() {
@@ -125,7 +132,7 @@ public class StateTextDiagramHelper  {
 	  }
 	
 	
-	private void appendToLists(String line, String editorLine, int lineNum, List<Transition> transitions,
+	private void appendToLists(String line, String editorLine, int lineNum, ArrayList<String> actualStates,
 			HashMap<String, ArrayList<StateReference>> stateLinkers, FindReplaceDocumentAdapter finder) throws BadLocationException {
 		////////////////////
 		IRegion markerRegion = finder.find(0, line, true, true, false, false);
@@ -155,12 +162,11 @@ public class StateTextDiagramHelper  {
 				if (line.contains(":"))
 					anotherIndex = line.indexOf(":") - 1;
 				rightState = line.substring(index, anotherIndex).trim();
-				int rightCharStart = markerRegion.getOffset() + index;
+				int rightCharStart = markerRegion.getOffset() + index + 1;
 				int rightCharEnd = markerRegion.getOffset() + anotherIndex;
 				
 				transition = new Transition(leftState, rightState, leftCharStart, leftCharEnd, rightCharStart, rightCharEnd);
 				stateReference = new StateReference(line, editorLine, lineNum, transition);
-				System.out.println(stateReference.toString());
 				
 				
 			} else if (line.contains("<-")) {
@@ -192,12 +198,6 @@ public class StateTextDiagramHelper  {
 				stateLinkers.put(rightState, stateReferences);
 			}
 	
-			transitions.add(transition);
-			
-			
-			
-			
-			
 		} else if (line.contains(":") || line.trim().substring(0, 5).equals("state")) {
 			//STATES
 			String stateName = "";
@@ -242,21 +242,11 @@ public class StateTextDiagramHelper  {
 				stateLinkers.put(stateName, stateReferences);
 			}
 			if (lineNum == selectedLineNum) stateSelected = stateName;
+			actualStates.add(stateName);
 
 		}
 			
 	}
-	
-	public static void print(HashMap<String, ArrayList<StateReference>>  map) 
-    { 
-        if (map.isEmpty()) { 
-            System.out.println("map is empty"); 
-        } 
-  
-        else { 
-            System.out.println(map); 
-        } 
-    } 
 	
 	
 	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart,
@@ -267,14 +257,6 @@ public class StateTextDiagramHelper  {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot wsRoot = workspace.getRoot();
 		IResource root = wsRoot.findMember(path);
-		
-		
-		if (toggle) {
-			initializeKeys(root, path, document);
-			toggle = false;
-		}
-		
-		
 		try {
 
 			// search backward and forward start and end
@@ -302,51 +284,61 @@ public class StateTextDiagramHelper  {
 					StringBuilder result = new StringBuilder();
 					final int maxLine = Math.min(document.getLineOfOffset(endOffset) + (includeEnd ? 1 : 0),
 							document.getNumberOfLines());
-	
-					List<Transition> transitions = new ArrayList<Transition>();
-					HashMap<String, ArrayList<StateReference>> stateLinkers = new HashMap<String, ArrayList<StateReference>> (); 
-					
+//					System.out.println();
+//					System.out.println();
+//					int i = 0;
+//					for (String key : plantMarkerKey) {
+//						System.out.println(i + key);
+//						i ++;
+//					}
+//					System.out.println("key size: " + plantMarkerKey.size());
+					IMarker[] allMarkers = root.findMarkers("FSM.MARKER", false, IResource.DEPTH_ZERO);
+					int i = 0;
+					for (IMarker marker : allMarkers) {
+						System.out.println(marker.getAttribute(IMarker.MESSAGE));
+
+						i ++;
+					}
+					System.out.println("markerSize: " + allMarkers.length);
 					selectedLineNum = document.getLineOfOffset(selectionStart);
 
 					
-					diagramText.clear();
 					stateSelected = null;
-					
+					HashMap<String, ArrayList<StateReference>> stateLinkers = new HashMap<String, ArrayList<StateReference>> (); 
+				    ArrayList<String> actualStates = new ArrayList<String>();
+
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
 						String newLine = stateDescriptor(line);
 						if (newLine != null){ 
-							appendToLists(newLine, line, lineNum, transitions, stateLinkers, finder);
-							diagramText.put(newLine, lineNum);
+							appendToLists(newLine, line, lineNum, actualStates, stateLinkers, finder);
 						}
 						
 					}
 					
 					
-					print(stateLinkers);
-					
-					
 					String className = path.toFile().getName();
-					className = className.substring(0, className.length()- 5);
-					
 					
 					removeHighlights(root);
 				
-					
-					String stateName; String line;
+					String stateName; 
+					String line;
 					int lineNum; 
 					ArrayList<StateReference> stateReferences;
 					ArrayList<String> addedTransitions = new ArrayList<String>();
-				
+					boolean displayedMarkers = false;
+
 					for (Map.Entry<String, ArrayList<StateReference>> entry : stateLinkers.entrySet()) {
+						ArrayList<StateReference> addedTransitionRef = new ArrayList<StateReference>();
+
+
 						stateName = entry.getKey();
 						stateReferences = entry.getValue();
-						
+						boolean onlyTransitions = true;
 						for (StateReference stateReference : stateReferences) {
 							line = stateReference.theLine;
 							lineNum = stateReference.lineNum;
-
-							IRegion markerRegion = finder.find(0, line, true, true, false, false);
+							
 							
 							createKey(stateReference, className, path, document, root);
 							
@@ -354,14 +346,11 @@ public class StateTextDiagramHelper  {
 								//TRANSITION
 								
 								//transitionDone ?
+								addedTransitionRef.add(stateReference);
 								if (addedTransitions.contains(line)) continue;
 								if (selectedLineNum == lineNum) {
 									String colorTransition = forwardTransitionLink(line);
 									result.append(backwardTransitionLink(colorTransition, className, lineNum));
-		//							for (int i =0 ; i<transitionStateNames.size(); i++) {
-		//								if (transitionStates.contains(transitionStateNames.get(i)))
-		//									displayMarkers(transitionStateNames.get(i), className, root);
-		//							}
 								} else
 									result.append(backwardTransitionLink(line, className, lineNum));
 								addedTransitions.add(line);
@@ -369,7 +358,8 @@ public class StateTextDiagramHelper  {
 							
 							else {
 								//STATE
-								if (selectedLineNum == lineNum || stateName.equals(stateSelected) ) {
+								onlyTransitions = false;
+								if (stateName.equals(stateSelected) ) {
 									String colorState = forwardStateLink(stateName);
 						    		
 									result.append(line);
@@ -377,8 +367,10 @@ public class StateTextDiagramHelper  {
 									result.append(backwardStateLink(stateName, className, lineNum));
 						    		result.append("\n");
 									result.append(colorState);
-									
-									displayMarkers(stateName, stateLinkers, path, root);
+									if (!displayedMarkers) {
+										displayMarkers(stateName, stateLinkers, path, root);
+										displayedMarkers = true;
+									}
 		
 								} else {
 									result.append(backwardStateLink(stateName, className, lineNum));
@@ -390,6 +382,35 @@ public class StateTextDiagramHelper  {
 								result.append("\n");
 							}
 							
+						}
+					
+						
+						if (onlyTransitions) {
+							for (StateReference addedTransition : addedTransitionRef) {
+								String leftStateName = addedTransition.transition.leftState;
+								String rightStateName = addedTransition.transition.rightState;
+								String theLine = addedTransition.editorLine;
+								int charStart, charEnd;
+							    lineNum = addedTransition.lineNum;
+								if (!actualStates.contains(leftStateName)) {
+									charStart = addedTransition.transition.leftCharStart;
+									charEnd = addedTransition.transition.leftCharEnd;
+									StateReference leftStateRef = new StateReference(theLine, "transitionState" + leftStateName, lineNum, charStart, charEnd, true);
+									result.append(backwardsTransitionStateLink(leftStateRef, leftStateName, className, path, document, root));
+									result.append("\n");
+								}		
+
+								if (!actualStates.contains(rightStateName)) {
+
+									charStart = addedTransition.transition.rightCharStart;
+									charEnd = addedTransition.transition.rightCharEnd;
+									StateReference rightStateRef = new StateReference(theLine, "transitionState" + rightStateName, lineNum, charStart, charEnd, true);
+									result.append(backwardsTransitionStateLink(rightStateRef, rightStateName, className, path, document, root));
+									result.append("\n");
+
+								}
+			
+							}
 						}
 						
 						
@@ -407,52 +428,82 @@ public class StateTextDiagramHelper  {
 		return null;
 	}
 	
-	private static IMarker[] allMarkers;
+
 	
-	//initialize all fsm markers made in previous sessions
-	protected static void initializeKeys(IResource resource, IPath path, IDocument document) {
-		try {
-			allMarkers = resource.findMarkers(IMarker.BOOKMARK, false, IResource.DEPTH_ZERO);
 
-			for (IMarker aMarker : allMarkers) {
-
-				String message = aMarker.getAttribute(IMarker.MESSAGE, "");
-				String subString = message.substring(0, 3);
-
-				if (subString.equals("FSM")) {
-					String theLine = message.substring(5, message.length());
-					int lineNum = (int)aMarker.getAttribute(IMarker.LINE_NUMBER);
-					int markerCharStart = (int)aMarker.getAttribute(IMarker.CHAR_START);
-					int markerCharEnd = (int)aMarker.getAttribute(IMarker.CHAR_END);
-					String className = path.toFile().getName();
-					String key = className + theLine + String.valueOf(lineNum) + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);;
-					plantMarkerKey.add(key);
-				}
-			}
-		} catch (CoreException e) {
-			System.out.println("Error initializing keys");
+	private void createKey(StateReference stateReference, String className, IPath path, IDocument document, IResource root) {
+		
+		String theLine = stateReference.editorLine;
+		int lineNum = stateReference.lineNum;
+		
+		int charStart;
+		int charEnd;
+		if (stateReference.isTransition) {
+			charStart = stateReference.transition.leftCharStart;
+			charEnd = stateReference.transition.rightCharEnd;
+		} else {
+			charStart = stateReference.charStart;
+			charEnd = stateReference.charEnd;
+			
+				
 		}
+		 
+
+		String key = className + theLine + String.valueOf(lineNum + 1) + String.valueOf(charStart) + String.valueOf(charEnd);
+		if (plantMarkerKey.contains(key)) {
+			System.out.println("Key exists");
+			return;
+		}
+		if (possibleChangedMarker(theLine, lineNum, className, path, document, root, charStart, charEnd)) {
+			System.out.println("marker changed");
+			return;
+		}
+		//else brand new line so create new marker and key
+		System.out.println("key doesnt exist, adding key");
+		plantMarkerKey.add(key);
+		addTask(theLine, lineNum, path, charStart, charEnd);
+		
 	}
 
-	private static boolean possibleChangedMarker(String theLine, int lineNum, IPath iPath, IDocument document, IResource root, int charStart, int charEnd) {
+	private static void addTask(String theLine, int lineNum, IPath path, int charStart, int charEnd) {
+		// use Platform.run to batch the marker creation and attribute setting
+		Platform.run(new ISafeRunnable() {
+			public void run() throws Exception {
+				IWorkspace workspace = ResourcesPlugin.getWorkspace();
+				IWorkspaceRoot wsRoot = workspace.getRoot();
+				IResource root = wsRoot.findMember(path);
+
+				IMarker marker = root.createMarker("FSM.MARKER");
+				marker.setAttribute(IMarker.MESSAGE, theLine);
+				marker.setAttribute(IMarker.LINE_NUMBER, lineNum + 1);
+				marker.setAttribute(IMarker.SOURCE_ID, path.toString());
+				marker.setAttribute(IMarker.CHAR_START, charStart);
+				marker.setAttribute(IMarker.CHAR_END, charEnd);
+			}
+		});
+
+	}
+
+	private static boolean possibleChangedMarker(String theLine, int lineNum, String className, IPath iPath, IDocument document, IResource root, int charStart, int charEnd) {
 		try {
-			allMarkers = root.findMarkers(IMarker.BOOKMARK, false, IResource.DEPTH_ZERO);
-			
-			
-			String className = iPath.toFile().getName(); 
-			//remove .java
+			IMarker[] allMarkers;
+		
+			allMarkers = root.findMarkers("FSM.MARKER", false, IResource.DEPTH_ZERO);
 			
 			
 			String path = iPath.toString();
 			for (IMarker aMarker : allMarkers) {
 				//Marker
 				String markerMessage = (String)aMarker.getAttribute(IMarker.MESSAGE);
-				//remove 'fsm '
-				markerMessage = markerMessage.substring(5, markerMessage.length());
+				
+				if (theLine.contains("transitionState") && !theLine.equals(markerMessage)) continue;
+				
 				int markerLine = (int)aMarker.getAttribute(IMarker.LINE_NUMBER);
+				
 				String markerPath = (String)aMarker.getAttribute(IMarker.SOURCE_ID);
 				String[] tmp = markerPath.split("/");
 				String markerClassName = tmp[tmp.length-1];
+
 				int markerCharStart = (int)aMarker.getAttribute(IMarker.CHAR_START);
 				int markerCharEnd = (int)aMarker.getAttribute(IMarker.CHAR_END);
 				
@@ -462,7 +513,6 @@ public class StateTextDiagramHelper  {
 					if (!markerMessage.equals(theLine) || markerCharStart != charStart || markerCharEnd != charEnd) {
 						String oldKey = markerClassName + markerMessage + String.valueOf(markerLine)  + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);
 						String newKey = className + theLine + String.valueOf(lineNum + 1) + String.valueOf(charStart) +  String.valueOf(charEnd);
-
 						//delete old marker
 						aMarker.delete();
 						//and its key...
@@ -475,12 +525,11 @@ public class StateTextDiagramHelper  {
 						return true;
 					}
 				}
-				
 				if (markerPath.equals(path) && markerMessage.equals(theLine)) {
 					if (markerLine != lineNum + 1 || markerCharStart != charStart || markerCharEnd != charEnd) {
 						String oldKey = markerClassName + markerMessage + String.valueOf(markerLine)  + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);
 						String newKey = className + theLine + String.valueOf(lineNum + 1) + String.valueOf(charStart) +  String.valueOf(charEnd);
-	
+
 						//delete old marker
 						aMarker.delete();
 						//and its key...
@@ -496,7 +545,6 @@ public class StateTextDiagramHelper  {
 				
 				//line deleted - delete marker and key
 				if (!sameLineInDoc.equals(markerMessage)) {
-					System.out.println("Deleting empty line");
 					String oldKey = markerClassName + markerMessage + String.valueOf(markerLine)  + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);
 					
 					//delete key
@@ -512,86 +560,38 @@ public class StateTextDiagramHelper  {
 		} catch (BadLocationException e) {
 			System.out.println("Cant find same line in doc");
 		}
-		System.out.println("Nothing to report here");
 		return false;
 
 	}
 
-	// TODO: onStartup initialize keylist with FSM bookmarks
-	// Delete keys on marker deletion?
-	private static void createKey(StateReference stateReference, String className, IPath path, IDocument document, IResource root) {
-		
-		String theLine = stateReference.editorLine;
-		int lineNum = stateReference.lineNum;
-		
-		int charStart;
-		int charEnd;
-		if (stateReference.isTransition) {
-			charStart = stateReference.transition.leftCharStart;
-			charEnd = stateReference.transition.rightCharEnd;
-		} else {
-			charStart = stateReference.charStart;
-			charEnd = stateReference.charEnd;
-		}
-		 
-
-		String key = className + theLine + String.valueOf(lineNum + 1) + String.valueOf(charStart) + String.valueOf(charEnd);
-		if (plantMarkerKey.contains(key)) {
-			return;
-		}
-		if (possibleChangedMarker(theLine, lineNum, path, document, root, charStart, charEnd)) {
-			return;
-		}
-		//else brand new line so create new marker and key
-		plantMarkerKey.add(key);
-		addTask(theLine, lineNum, path, charStart, charEnd);
-		
-	}
-
-	private static void addTask(String theLine, int lineNum, IPath path, int charStart, int charEnd) {
-		// use Platform.run to batch the marker creation and attribute setting
-		Platform.run(new ISafeRunnable() {
-			public void run() throws Exception {
-				IWorkspace workspace = ResourcesPlugin.getWorkspace();
-				IWorkspaceRoot wsRoot = workspace.getRoot();
-				IResource root = wsRoot.findMember(path);
-
-				IMarker marker = root.createMarker(IMarker.BOOKMARK);
-				marker.setAttribute(IMarker.MESSAGE, "FSM: " + theLine);
-				marker.setAttribute(IMarker.LINE_NUMBER, lineNum + 1);
-				marker.setAttribute(IMarker.SOURCE_ID, path.toString());
-				marker.setAttribute(IMarker.CHAR_START, charStart);
-				marker.setAttribute(IMarker.CHAR_END, charEnd);
-			}
-		});
-
-	}
-
-
-	
-
 	//Link from the editor to the diagram
-	private static String forwardStateLink(String stateName) {
+	private String forwardStateLink(String stateName) {
 		return "state " + stateName + " #Cyan";
 	}
 
 	//Link from the editor to the diagram
-	private static String forwardTransitionLink(String selectedLine) {
+	private String forwardTransitionLink(String selectedLine) {
 		String colorTransition = "";
 		int indexOfArrow = selectedLine.indexOf("->");
 		colorTransition = selectedLine.substring(0, indexOfArrow) +  "-[thickness=5,#blue]>" + selectedLine.substring(indexOfArrow +2, selectedLine.length());
 		return colorTransition;
 	}
 
-	private static String backwardStateLink(String stateName, String className, int lineNum) {
-		String test = "state " + stateName + "[["+className+"#FSM#state#"+ lineNum +"]]";
-		return test;
+	private String backwardStateLink(String stateName, String className, int lineNum) {
+		String link = "state " + stateName + "[["+className+"#FSM#state#"+ lineNum +"]]";
+		return link;
 
 	}
 
-	private static String backwardTransitionLink(String aLine, String className, int lineNum) {
+	private String backwardTransitionLink(String aLine, String className, int lineNum) {
 		return aLine + " : " + "[["+className+"#FSM#transition#"+lineNum+"]]";
 
+	}
+	
+	private String backwardsTransitionStateLink(StateReference stateReference, String stateName, String className, IPath path, IDocument document, IResource root) {
+		createKey(stateReference, className, path, document, root);
+		String link = "state " + stateName + "[["+className+"#FSM#"+stateReference.editorLine+"#"+stateReference.lineNum+"]]";
+		return link;
 	}
 	
 	private void displayMarkers(String stateName, HashMap<String, ArrayList<StateReference>> stateLinkers, IPath path , IResource root) throws CoreException {
@@ -610,16 +610,19 @@ public class StateTextDiagramHelper  {
 					lineNum = stateReference.lineNum;
 					
 					if (stateReference.isTransition) {
-						charStart = stateReference.transition.leftCharStart;
-						charEnd = stateReference.transition.rightCharEnd;
+						if (stateReference.transition.leftState.contentEquals(stateName)) {
+							charStart = stateReference.transition.leftCharStart;
+							charEnd = stateReference.transition.leftCharEnd;
+						} else {
+							charStart = stateReference.transition.rightCharStart;
+							charEnd = stateReference.transition.rightCharEnd;
+						}
 					} else {
 						charStart = stateReference.charStart;
 						charEnd = stateReference.charEnd;
 					}
-				  
-				
 	
-			        IMarker marker = root.createMarker("FSM.MARKER");
+			        IMarker marker = root.createMarker("FSM.Highlight");
 			        marker.setAttribute(IMarker.LINE_NUMBER, lineNum);
 			        marker.setAttribute(IMarker.SOURCE_ID, path.toString());
 			        marker.setAttribute(IMarker.CHAR_START,charStart);
@@ -628,14 +631,25 @@ public class StateTextDiagramHelper  {
 			}
 		}
 	}
+	//@start_state_machine
+	//FSM: State.l1 : a
+	//FSM: State1 -> State2
+	
+	//FSM: State3 -> state2
+	
+	//@end_state_machine
+	
+	/**
+	 * @startuml
+	 * State1 -> State2
+	 * @enduml
 	 
-	
-		
-	
+	 */
+	 
 	
 	protected static void removeHighlights(IResource resource) {
 		try {
-			IMarker[] markers = resource.findMarkers("FSM.MARKER", true, IResource.DEPTH_INFINITE);
+			IMarker[] markers = resource.findMarkers("FSM.Highlight", true, IResource.DEPTH_INFINITE);
 			for (IMarker m : markers) {
 				m.delete();
 			}
