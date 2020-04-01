@@ -24,7 +24,6 @@ import org.eclipse.jface.text.FindReplaceDocumentAdapter;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.ui.IEditorInput;
-import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IFileEditorInput;
 
 public class StateTextDiagramHelper  {
@@ -50,7 +49,6 @@ public class StateTextDiagramHelper  {
 		int charStart;
 		int charEnd;
 		boolean isTransition;
-		boolean onlyTransition;
 		Transition transition;
 		
 		StateReference(String theLine, String editorLine, int lineNum, int charStart, int charEnd) {
@@ -68,17 +66,6 @@ public class StateTextDiagramHelper  {
 			this.lineNum = lineNum;
 			this.isTransition = true;
 			this.transition = transition;
-		}
-		
-		
-		StateReference(String theLine, String editorLine, int lineNum, int charStart, int charEnd, boolean onlyTransition) {
-			this.theLine = theLine;
-			this.editorLine = editorLine;
-			this.lineNum = lineNum;
-			this.charStart = charStart;
-			this.charEnd = charEnd;
-			this.isTransition = false;
-			this.onlyTransition = onlyTransition;
 		}
 		
 		StateReference() {
@@ -247,6 +234,53 @@ public class StateTextDiagramHelper  {
 		}
 			
 	}
+
+	private String displayTransitionStateMarkers(int lineNum, IResource root, IPath path, IDocument document, int selectionStart, 
+			HashMap<String, ArrayList<StateReference>> stateLinkers) throws CoreException, BadLocationException { 
+		boolean test = true;
+		StringBuilder word = new StringBuilder();
+		int saveSelection = selectionStart;
+		String fdsf = "State2";
+		while (test) {
+			char c = document.getChar(saveSelection);
+			if (c == ' ' || c == '\n' || c == '\r') {
+				break;
+			}
+			word.append(c);
+			
+			saveSelection ++;
+			
+		}
+		String wordString = word.toString();
+		
+		//if here need to check if word is a transitionState...
+		ArrayList<StateReference> stateReferences = stateLinkers.get(wordString);
+		
+		if (stateReferences == null) return null;
+		for (StateReference stateReference : stateReferences) {
+			if (!stateReference.isTransition) return null;
+		}
+		
+		int charStart = 0;
+	    int charEnd = 0;
+	    
+		for (StateReference stateReference : stateReferences) {
+			Transition transition = stateReference.transition;
+			String leftState = transition.leftState;
+			String rightState = transition.rightState;
+			if (leftState.equals(wordString)) {
+				charStart = transition.leftCharStart;
+				charEnd = transition.leftCharEnd;
+			}
+			if (rightState.equals(wordString)) {
+				charStart = transition.rightCharStart;
+				charEnd = transition.rightCharEnd;
+			}
+			addHighlightTask(lineNum, charStart, charEnd, root, path);
+
+		}
+		return wordString;
+	}
 	
 	
 	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart,
@@ -301,12 +335,15 @@ public class StateTextDiagramHelper  {
 					}
 					System.out.println("markerSize: " + allMarkers.length);
 					selectedLineNum = document.getLineOfOffset(selectionStart);
-
+					
 					
 					stateSelected = null;
 					HashMap<String, ArrayList<StateReference>> stateLinkers = new HashMap<String, ArrayList<StateReference>> (); 
 				    ArrayList<String> actualStates = new ArrayList<String>();
-
+				    System.out.println();
+				    System.out.println();
+				    System.out.println();
+				    System.out.println("selection start : " + selectionStart);
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
 						String newLine = stateDescriptor(line);
@@ -327,6 +364,8 @@ public class StateTextDiagramHelper  {
 					ArrayList<StateReference> stateReferences;
 					ArrayList<String> addedTransitions = new ArrayList<String>();
 					boolean displayedMarkers = false;
+					String transitionStateName = "";
+					boolean transitionStateSelected = false;
 
 					for (Map.Entry<String, ArrayList<StateReference>> entry : stateLinkers.entrySet()) {
 						ArrayList<StateReference> addedTransitionRef = new ArrayList<StateReference>();
@@ -344,13 +383,19 @@ public class StateTextDiagramHelper  {
 							
 							if (stateReference.isTransition) {
 								//TRANSITION
-								
 								//transitionDone ?
 								addedTransitionRef.add(stateReference);
 								if (addedTransitions.contains(line)) continue;
 								if (selectedLineNum == lineNum) {
-									String colorTransition = forwardTransitionLink(line);
-									result.append(backwardTransitionLink(colorTransition, className, lineNum));
+									transitionStateName = displayTransitionStateMarkers(lineNum, root, path, document, selectionStart, stateLinkers);
+									if (transitionStateName == null) {
+										String colorTransition = forwardTransitionLink(line);
+										result.append(backwardTransitionLink(colorTransition, className, lineNum));
+									} else {
+										transitionStateSelected = true;
+										result.append(backwardTransitionLink(line, className, lineNum));
+									}
+										
 								} else
 									result.append(backwardTransitionLink(line, className, lineNum));
 								addedTransitions.add(line);
@@ -386,6 +431,7 @@ public class StateTextDiagramHelper  {
 					
 						
 						if (onlyTransitions) {
+							lineNum = 0;
 							for (StateReference addedTransition : addedTransitionRef) {
 								String leftStateName = addedTransition.transition.leftState;
 								String rightStateName = addedTransition.transition.rightState;
@@ -395,7 +441,7 @@ public class StateTextDiagramHelper  {
 								if (!actualStates.contains(leftStateName)) {
 									charStart = addedTransition.transition.leftCharStart;
 									charEnd = addedTransition.transition.leftCharEnd;
-									StateReference leftStateRef = new StateReference(theLine, "transitionState" + leftStateName, lineNum, charStart, charEnd, true);
+									StateReference leftStateRef = new StateReference(theLine, "transitionState" + leftStateName, lineNum, charStart, charEnd);
 									result.append(backwardsTransitionStateLink(leftStateRef, leftStateName, className, path, document, root));
 									result.append("\n");
 								}		
@@ -404,13 +450,19 @@ public class StateTextDiagramHelper  {
 
 									charStart = addedTransition.transition.rightCharStart;
 									charEnd = addedTransition.transition.rightCharEnd;
-									StateReference rightStateRef = new StateReference(theLine, "transitionState" + rightStateName, lineNum, charStart, charEnd, true);
+									StateReference rightStateRef = new StateReference(theLine, "transitionState" + rightStateName, lineNum, charStart, charEnd);
 									result.append(backwardsTransitionStateLink(rightStateRef, rightStateName, className, path, document, root));
-									result.append("\n");
+									result.append("\n ");
 
 								}
 			
 							}
+							if (transitionStateSelected) {
+								result.append(forwardStateLink(transitionStateName));
+								result.append("\n");
+							}
+							
+							
 						}
 						
 						
@@ -439,7 +491,7 @@ public class StateTextDiagramHelper  {
 		int charStart;
 		int charEnd;
 		if (stateReference.isTransition) {
-			charStart = stateReference.transition.leftCharStart;
+			charStart = stateReference.transition.leftCharStart + 1;
 			charEnd = stateReference.transition.rightCharEnd;
 		} else {
 			charStart = stateReference.charStart;
@@ -461,17 +513,14 @@ public class StateTextDiagramHelper  {
 		//else brand new line so create new marker and key
 		System.out.println("key doesnt exist, adding key");
 		plantMarkerKey.add(key);
-		addTask(theLine, lineNum, path, charStart, charEnd);
+		addMarkerTask(theLine, lineNum, path, charStart, charEnd, root);
 		
 	}
 
-	private static void addTask(String theLine, int lineNum, IPath path, int charStart, int charEnd) {
+	private static void addMarkerTask(String theLine, int lineNum, IPath path, int charStart, int charEnd, IResource root) {
 		// use Platform.run to batch the marker creation and attribute setting
 		Platform.run(new ISafeRunnable() {
 			public void run() throws Exception {
-				IWorkspace workspace = ResourcesPlugin.getWorkspace();
-				IWorkspaceRoot wsRoot = workspace.getRoot();
-				IResource root = wsRoot.findMember(path);
 
 				IMarker marker = root.createMarker("FSM.MARKER");
 				marker.setAttribute(IMarker.MESSAGE, theLine);
@@ -482,6 +531,15 @@ public class StateTextDiagramHelper  {
 			}
 		});
 
+	}
+	
+	private void addHighlightTask(int lineNum, int charStart, int charEnd, IResource root, IPath path) throws CoreException {
+		
+		IMarker marker = root.createMarker("FSM.Highlight");
+        marker.setAttribute(IMarker.LINE_NUMBER, lineNum);
+        marker.setAttribute(IMarker.SOURCE_ID, path.toString());
+        marker.setAttribute(IMarker.CHAR_START,charStart);
+        marker.setAttribute(IMarker.CHAR_END,charEnd);
 	}
 
 	private static boolean possibleChangedMarker(String theLine, int lineNum, String className, IPath iPath, IDocument document, IResource root, int charStart, int charEnd) {
@@ -519,7 +577,7 @@ public class StateTextDiagramHelper  {
 						plantMarkerKey.remove(oldKey);
 						
 						//create new marker
-						addTask(theLine, lineNum, iPath, charStart, charEnd);
+						addMarkerTask(theLine, lineNum, iPath, charStart, charEnd, root);
 						// and its new key
 						plantMarkerKey.add(newKey);
 						return true;
@@ -536,7 +594,7 @@ public class StateTextDiagramHelper  {
 						plantMarkerKey.remove(oldKey);
 						
 						//create new marker
-						addTask(theLine, lineNum, iPath, charStart, charEnd);
+						addMarkerTask(theLine, lineNum, iPath, charStart, charEnd, root);
 						// and its new key
 						plantMarkerKey.add(newKey);
 						return true;
@@ -621,12 +679,8 @@ public class StateTextDiagramHelper  {
 						charStart = stateReference.charStart;
 						charEnd = stateReference.charEnd;
 					}
-	
-			        IMarker marker = root.createMarker("FSM.Highlight");
-			        marker.setAttribute(IMarker.LINE_NUMBER, lineNum);
-			        marker.setAttribute(IMarker.SOURCE_ID, path.toString());
-			        marker.setAttribute(IMarker.CHAR_START,charStart);
-			        marker.setAttribute(IMarker.CHAR_END,charEnd);
+					addHighlightTask(lineNum, charStart, charEnd, root, path);
+			        
 				}
 			}
 		}
