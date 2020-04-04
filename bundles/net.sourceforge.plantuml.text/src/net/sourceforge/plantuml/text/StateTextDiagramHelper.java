@@ -7,8 +7,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
@@ -19,12 +20,16 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.ISafeRunnable;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.Plugin;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.FindReplaceDocumentAdapter;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
+import org.eclipse.swt.graphics.RGB;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IFileEditorInput;
+import org.eclipse.ui.texteditor.AnnotationPreference;
+import org.eclipse.ui.texteditor.MarkerAnnotationPreferences;
 
 public class StateTextDiagramHelper  {
 	
@@ -40,6 +45,18 @@ public class StateTextDiagramHelper  {
 	
 	public StateTextDiagramHelper() {
 	
+	}
+	
+	class PendingState extends StateTextDiagramHelper {
+		String theLine;
+		String editorLine;
+		int lineNum;
+		
+		PendingState(String theLine, String editorLine, int lineNum) {
+			this.theLine = theLine;
+			this.editorLine = editorLine;
+			this.lineNum = lineNum;
+		}
 	}
 	
 	class StateReference extends StateTextDiagramHelper {
@@ -86,6 +103,10 @@ public class StateTextDiagramHelper  {
 		int rightCharStart;
 		int rightCharEnd;
 		
+		int multiLineStart;
+		int multiLineEnd;
+		boolean multiLineTransition;
+		
 		Transition(String leftState, String rightState, int leftCharStart, int leftCharEnd, int rightCharStart, int rightCharEnd) {
 			this.leftState = leftState;
 			this.rightState = rightState;
@@ -93,7 +114,21 @@ public class StateTextDiagramHelper  {
 			this.leftCharEnd = leftCharEnd;
 			this.rightCharStart = rightCharStart;
 			this.rightCharEnd = rightCharEnd;
+			this.multiLineTransition = false;
 		}
+		
+		Transition(String leftState, String rightState, int leftCharStart, int leftCharEnd, int rightCharStart, int rightCharEnd, int multiLineStart, int multiLineEnd) {
+			this.leftState = leftState;
+			this.rightState = rightState;
+			this.leftCharStart = leftCharStart;
+			this.leftCharEnd = leftCharEnd;
+			this.rightCharStart = rightCharStart;
+			this.rightCharEnd = rightCharEnd;
+			this.multiLineStart = multiLineStart;
+			this.multiLineEnd = multiLineEnd;
+			this.multiLineTransition = true;
+		}
+		
 		
 		Transition() {
 			
@@ -113,14 +148,20 @@ public class StateTextDiagramHelper  {
 	    	return null;
 	    if (theLine.substring(0,6).equals("//fsm:")) {
 	      int index = line.indexOf(":") + 1;
+	      if (line.contains("->") || line.contains("<-")) {
+	    	  if (line.contains("{")) {
+	    		  int anotherIndex = line.indexOf("{");
+	    		  return line.substring(index, anotherIndex);
+	    	  }
+	      }
 	      return line.substring(index, line.length()).trim();
 	    }
 	    return null;
 	  }
 	
 	
-	private void appendToLists(String line, String editorLine, int lineNum, ArrayList<String> actualStates,
-			HashMap<String, ArrayList<StateReference>> stateLinkers, FindReplaceDocumentAdapter finder) throws BadLocationException {
+	private void appendToLists(String line, String editorLine, int lineNum, int multiLineEnd, ArrayList<String> actualStates,
+			HashMap<String, ArrayList<StateReference>> stateLinkers, FindReplaceDocumentAdapter finder, IDocument document) throws BadLocationException {
 		////////////////////
 		IRegion markerRegion = finder.find(0, line, true, true, false, false);
 		///////////////////
@@ -152,7 +193,14 @@ public class StateTextDiagramHelper  {
 				int rightCharStart = markerRegion.getOffset() + index + 1;
 				int rightCharEnd = markerRegion.getOffset() + anotherIndex;
 				
-				transition = new Transition(leftState, rightState, leftCharStart, leftCharEnd, rightCharStart, rightCharEnd);
+				if (multiLineEnd == -1) {
+					transition = new Transition(leftState, rightState, leftCharStart, leftCharEnd, rightCharStart, rightCharEnd);
+
+				} else {
+					leftCharStart ++;
+					leftCharEnd ++;
+					transition = new Transition(leftState, rightState, leftCharStart, leftCharEnd, rightCharStart, rightCharEnd, rightCharEnd, document.getLineOffset(multiLineEnd));
+				}
 				stateReference = new StateReference(line, editorLine, lineNum, transition);
 				
 				
@@ -203,7 +251,12 @@ public class StateTextDiagramHelper  {
 				}
 				
 				charStart = markerRegion.getOffset();
-				charEnd = markerRegion.getOffset() + markerRegion.getLength();
+				if (multiLineEnd == -1) {
+					charEnd = markerRegion.getOffset() + markerRegion.getLength();
+
+				} else {
+					charEnd = document.getLineOffset(multiLineEnd);
+				}
 				
 				stateReference = new StateReference(line, editorLine, lineNum, charStart, charEnd);
 				
@@ -211,8 +264,12 @@ public class StateTextDiagramHelper  {
 				index = line.indexOf(":") - 1;
 				stateName = line.substring(0, index).trim();
 				charStart = markerRegion.getOffset();
-				charEnd = markerRegion.getOffset() + markerRegion.getLength();
-				
+				if (multiLineEnd == -1) {
+					charEnd = markerRegion.getOffset() + markerRegion.getLength();
+
+				} else {
+					charEnd = document.getLineOffset(multiLineEnd);
+				}				
 				stateReference = new StateReference(line, editorLine, lineNum, charStart, charEnd);
 				
 				
@@ -234,13 +291,26 @@ public class StateTextDiagramHelper  {
 		}
 			
 	}
+	
+	private void displayTransitionMarkers(StateReference stateReference, IPath path, IResource root) throws CoreException {
+		int lineNum = stateReference.lineNum;
+		Transition transition = stateReference.transition;
+		int charStart = transition.leftCharStart;
+		int charEnd = transition.rightCharEnd;
+		if (transition.multiLineTransition) {
+			int multiLineStart = transition.multiLineStart;
+			int multiLineEnd = transition.multiLineEnd;
+			addHighlightTransition(lineNum, multiLineStart, multiLineEnd, root, path);
+		}
+		addHighlightTask(lineNum, charStart, charEnd, root, path);
+	}
+
 
 	private String displayTransitionStateMarkers(int lineNum, IResource root, IPath path, IDocument document, int selectionStart, 
 			HashMap<String, ArrayList<StateReference>> stateLinkers) throws CoreException, BadLocationException { 
 		boolean test = true;
 		StringBuilder word = new StringBuilder();
 		int saveSelection = selectionStart;
-		String fdsf = "State2";
 		while (test) {
 			char c = document.getChar(saveSelection);
 			if (c == ' ' || c == '\n' || c == '\r') {
@@ -271,10 +341,20 @@ public class StateTextDiagramHelper  {
 			if (leftState.equals(wordString)) {
 				charStart = transition.leftCharStart;
 				charEnd = transition.leftCharEnd;
+				if (transition.multiLineTransition) {
+					int multiLineStart = transition.multiLineStart;
+					int multiLineEnd = transition.multiLineEnd;
+					addHighlightTransition(lineNum, multiLineStart, multiLineEnd, root, path);
+				}
 			}
 			if (rightState.equals(wordString)) {
 				charStart = transition.rightCharStart;
 				charEnd = transition.rightCharEnd;
+				if (transition.multiLineTransition) {
+					int multiLineStart = transition.multiLineStart;
+					int multiLineEnd = transition.multiLineEnd;
+					addHighlightTransition(lineNum, multiLineStart, multiLineEnd, root, path);
+				}
 			}
 			addHighlightTask(lineNum, charStart, charEnd, root, path);
 
@@ -336,24 +416,36 @@ public class StateTextDiagramHelper  {
 					System.out.println("markerSize: " + allMarkers.length);
 					selectedLineNum = document.getLineOfOffset(selectionStart);
 					
-					
+					Stack<PendingState> pendingStates = new Stack<PendingState>();
 					stateSelected = null;
 					HashMap<String, ArrayList<StateReference>> stateLinkers = new HashMap<String, ArrayList<StateReference>> (); 
 				    ArrayList<String> actualStates = new ArrayList<String>();
-				    System.out.println();
-				    System.out.println();
-				    System.out.println();
-				    System.out.println("selection start : " + selectionStart);
+				  
+				    
+				    
+		
+				 
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
 						String newLine = stateDescriptor(line);
-						if (newLine != null){ 
-							appendToLists(newLine, line, lineNum, actualStates, stateLinkers, finder);
+						if (newLine != null){
+							
+							if (line.contains("}") && pendingStates.size() > 0) {
+								PendingState pendingState = pendingStates.pop();
+								appendToLists(pendingState.theLine, pendingState.editorLine, pendingState.lineNum, lineNum, actualStates, stateLinkers, finder, document);
+							} else if (line.contains("{")) {
+								PendingState pendingState = new PendingState(newLine, line, lineNum);
+								pendingStates.push(pendingState);
+							} else {
+								appendToLists(newLine, line, lineNum, -1, actualStates, stateLinkers, finder, document);
+							}
+							
 						}
-						
 					}
+						
 					
 					
+
 					String className = path.toFile().getName();
 					
 					removeHighlights(root);
@@ -391,6 +483,7 @@ public class StateTextDiagramHelper  {
 									if (transitionStateName == null) {
 										String colorTransition = forwardTransitionLink(line);
 										result.append(backwardTransitionLink(colorTransition, className, lineNum));
+										displayTransitionMarkers(stateReference, path, root);
 									} else {
 										transitionStateSelected = true;
 										result.append(backwardTransitionLink(line, className, lineNum));
@@ -535,11 +628,20 @@ public class StateTextDiagramHelper  {
 	
 	private void addHighlightTask(int lineNum, int charStart, int charEnd, IResource root, IPath path) throws CoreException {
 		
-		IMarker marker = root.createMarker("FSM.Highlight");
+		IMarker marker = root.createMarker("FSM.State.Highlight");
         marker.setAttribute(IMarker.LINE_NUMBER, lineNum);
         marker.setAttribute(IMarker.SOURCE_ID, path.toString());
         marker.setAttribute(IMarker.CHAR_START,charStart);
         marker.setAttribute(IMarker.CHAR_END,charEnd);
+	}
+	
+	private void addHighlightTransition(int lineNum, int multiLineStart, int multiLineEnd, IResource root, IPath path) throws CoreException {
+		IMarker marker = root.createMarker("FSM.Transition.Highlight_1");
+        marker.setAttribute(IMarker.LINE_NUMBER, lineNum);
+        marker.setAttribute(IMarker.SOURCE_ID, path.toString());
+        marker.setAttribute(IMarker.CHAR_START,multiLineStart);
+        marker.setAttribute(IMarker.CHAR_END,multiLineEnd);
+        
 	}
 
 	private static boolean possibleChangedMarker(String theLine, int lineNum, String className, IPath iPath, IDocument document, IResource root, int charStart, int charEnd) {
@@ -630,8 +732,9 @@ public class StateTextDiagramHelper  {
 	//Link from the editor to the diagram
 	private String forwardTransitionLink(String selectedLine) {
 		String colorTransition = "";
-		int indexOfArrow = selectedLine.indexOf("->");
-		colorTransition = selectedLine.substring(0, indexOfArrow) +  "-[thickness=5,#blue]>" + selectedLine.substring(indexOfArrow +2, selectedLine.length());
+		int indexOfArrow = selectedLine.indexOf("-");
+		String theArrow = selectedLine.substring(indexOfArrow+1, indexOfArrow +2);
+		colorTransition = selectedLine.substring(0, indexOfArrow) +  "-[thickness=5,#blue]" + theArrow + selectedLine.substring(indexOfArrow +2, selectedLine.length());
 		return colorTransition;
 	}
 
@@ -675,11 +778,19 @@ public class StateTextDiagramHelper  {
 							charStart = stateReference.transition.rightCharStart;
 							charEnd = stateReference.transition.rightCharEnd;
 						}
+						
+						if (stateReference.transition.multiLineTransition) {
+							int multiLineStart = stateReference.transition.multiLineStart;
+							int multiLineEnd = stateReference.transition.multiLineEnd;
+							addHighlightTransition(lineNum, multiLineStart, multiLineEnd, root, path);
+						}
+						
 					} else {
 						charStart = stateReference.charStart;
 						charEnd = stateReference.charEnd;
 					}
 					addHighlightTask(lineNum, charStart, charEnd, root, path);
+
 			        
 				}
 			}
@@ -703,7 +814,11 @@ public class StateTextDiagramHelper  {
 	
 	protected static void removeHighlights(IResource resource) {
 		try {
-			IMarker[] markers = resource.findMarkers("FSM.Highlight", true, IResource.DEPTH_INFINITE);
+			IMarker[] markers = resource.findMarkers("FSM.State.Highlight", true, IResource.DEPTH_INFINITE);
+			for (IMarker m : markers) {
+				m.delete();
+			}
+			markers = resource.findMarkers("FSM.Transition.Highlight", true, IResource.DEPTH_INFINITE);
 			for (IMarker m : markers) {
 				m.delete();
 			}

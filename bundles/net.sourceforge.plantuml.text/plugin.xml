@@ -93,64 +93,48 @@
             diagramSuffix="@end_state_machine"
             >
       </textDiagramProvider>
-            	
+            	-
    </extension>
+   
    
    <extension   
 	        point="org.eclipse.ui.editors.annotationTypes">
-      <type
-	        markerType="FSM.Highlight"
-	        name="FSM.Highlight">
-	  </type>
-   </extension>
-	
-   <extension
-	        id="FSM.Highlight"
-	        name="FSM.Highlight"
-	        point="org.eclipse.core.resources.markers">
-      <super
-	        type="org.eclipse.core.resources.textmarker">
-	  </super>
-   </extension>
-	
-   <extension
-	        point="org.eclipse.ui.editors.markerAnnotationSpecification">
-      <specification
-	        annotationType="FSM.Highlight"
-	        colorPreferenceKey="FSM.Highlight.COLOR"
-	        colorPreferenceValue="0,245,255"
-	        contributesToHeader="false"
-	        highlightPreferenceKey="FSM.Highlight.highlight"
-	        highlightPreferenceValue="true"
-	        includeOnPreferencePage="true"
-	        label="FSM.Highlight"
-	        overviewRulerPreferenceKey="org.eclipse.viatra2.slice.overview"
-	        overviewRulerPreferenceValue="true"
-	        presentationLayer="0"
-	        textPreferenceKey="org.eclipse.viatra2.slice.text"
-	        textPreferenceValue="true"
-	        textStylePreferenceValue="BOX"
-	        verticalRulerPreferenceKey="org.eclipse.viatra2.slice.ruler"
-	        verticalRulerPreferenceValue="true">
-      </specification>
-   </extension>
-   
-   <extension   
-	        point="org.eclipse.ui.editors.annotationTypes">
-      <type
+	   <type
 	        markerType="FSM.MARKER"
 	        name="FSM.MARKER">
 	  </type>
+      <type
+	        markerType="FSM.State.Highlight"
+	        name="FSM.State.Highlight">
+	  </type>
+	  <type
+	        markerType="FSM.Transition.Highlight_1"
+	        name="FSM.Transition.Highlight_1">
+	  </type>
+	  <type
+	        markerType="FSM.Transition.Highlight_2"
+	        name="FSM.Transition.Highlight_2">
+	  </type>
+	  <type
+	        markerType="FSM.Transition.Highlight_3"
+	        name="FSM.Transition.Highlight_3">
+	  </type>
+	  <type
+	        markerType="FSM.Transition.Highlight_4"
+	        name="FSM.Transition.Highlight_4">
+	  </type>
+	  <type
+	        markerType="FSM.Transition.Highlight_5"
+	        name="FSM.Transition.Highlight_5">
+	  </type>
+	  <type
+	        markerType="FSM.Transition.Highlight_6"
+	        name="FSM.Transition.Highlight_6">
+	  </type>	  
    </extension>
-	
-   <extension
-	        id="FSM.MARKER"
-	        name="FSM.MARKER"
-	        point="org.eclipse.core.resources.markers">
-      <super
-	        type="org.eclipse.core.resources.textmarker">
-	  </super>
-   </extension>
+   
+
+   
    
    <extension
 	        point="org.eclipse.ui.editors.markerAnnotationSpecification">
@@ -170,6 +154,116 @@
 	        verticalRulerPreferenceKey="org.eclipse.viatra2.slice.ruler"
 	        verticalRulerPreferenceValue="false">
       </specification>
+   </extension>
+   
+   
+   
+   
+   
+   
+	
+   <extension
+	        point="org.eclipse.ui.editors.markerAnnotationSpecification">
+	  
+      <specification
+	        annotationType="FSM.Transition.Highlight_1"
+	        colorPreferenceKey="FSM.Transition.Highlight.COLOR1"
+	        colorPreferenceValue="0,245,0"
+	        highlightPreferenceKey="FSM.Transition.Highlight.highlight"
+	        highlightPreferenceValue="true"
+	        includeOnPreferencePage="true"
+	        label="FSM.Transition.Highlight_1"
+	        overviewRulerPreferenceKey="org.eclipse.viatra2.slice.overview"
+	        overviewRulerPreferenceValue="true"
+	        presentationLayer="1"
+	        textPreferenceKey="org.eclipse.viatra2.slice.text"
+	        textPreferenceValue="true">
+	   </specification>
+	   
+       <specification
+	        annotationType="FSM.Transition.Highlight_2"
+	        colorPreferenceKey="FSM.Transition.Highlight.COLOR2"
+	        colorPreferenceValue="255,0,0"
+	        highlightPreferenceKey="FSM.Transition.Highlight.highlight"
+	        highlightPreferenceValue="true"
+	        includeOnPreferencePage="true"
+	        label="FSM.Transition.Highlight_2"
+	        overviewRulerPreferenceKey="org.eclipse.viatra2.slice.overview"
+	        overviewRulerPreferenceValue="true"
+	        presentationLayer="0"
+	        textPreferenceKey="org.eclipse.viatra2.slice.text"
+	        textPreferenceValue="true">
+      </specification>
+       <specification
+	        annotationType="FSM.Transition.Highlight_3"
+	        colorPreferenceKey="FSM.Transition.Highlight.COLOR3"
+	        colorPreferenceValue="0,245,255"
+	        highlightPreferenceKey="FSM.Transition.Highlight.highlight"
+	        highlightPreferenceValue="true"
+	        includeOnPreferencePage="true"
+	        label="FSM.Transition.Highlight_3"
+	        overviewRulerPreferenceKey="org.eclipse.viatra2.slice.overview"
+	        overviewRulerPreferenceValue="true"
+	        presentationLayer="0"
+	        textPreferenceKey="org.eclipse.viatra2.slice.text"
+	        textPreferenceValue="true">
+      </specification>
+       <specification
+	        annotationType="FSM.Transition.Highlight_4"
+	        colorPreferenceKey="FSM.Transition.Highlight.COLOR4"
+	        colorPreferenceValue="0,245,255"
+	        highlightPreferenceKey="FSM.Transition.Highlight.highlight"
+	        highlightPreferenceValue="true"
+	        includeOnPreferencePage="true"
+	        label="FSM.Transition.Highlight_4"
+	        overviewRulerPreferenceKey="org.eclipse.viatra2.slice.overview"
+	        overviewRulerPreferenceValue="true"
+	        presentationLayer="0"
+	        textPreferenceKey="org.eclipse.viatra2.slice.text"
+	        textPreferenceValue="true">
+      </specification>
+       <specification
+	        annotationType="FSM.Transition.Highlight_5"
+	        colorPreferenceKey="FSM.Transition.Highlight.COLOR5"
+	        colorPreferenceValue="0,245,255"
+	        highlightPreferenceKey="FSM.Transition.Highlight.highlight"
+	        highlightPreferenceValue="true"
+	        includeOnPreferencePage="true"
+	        label="FSM.Transition.Highlight_5"
+	        overviewRulerPreferenceKey="org.eclipse.viatra2.slice.overview"
+	        overviewRulerPreferenceValue="true"
+	        presentationLayer="0"
+	        textPreferenceKey="org.eclipse.viatra2.slice.text"
+	        textPreferenceValue="true">
+      </specification>
+       <specification
+	        annotationType="FSM.Transition.Highlight_6"
+	        colorPreferenceKey="FSM.Transition.Highlight.COLOR6"
+	        colorPreferenceValue="0,245,255"
+	        highlightPreferenceKey="FSM.Transition.Highlight.highlight"
+	        highlightPreferenceValue="true"
+	        includeOnPreferencePage="true"
+	        label="FSM.Transition.Highlight_6"
+	        overviewRulerPreferenceKey="org.eclipse.viatra2.slice.overview"
+	        overviewRulerPreferenceValue="true"
+	        presentationLayer="0"
+	        textPreferenceKey="org.eclipse.viatra2.slice.text"
+	        textPreferenceValue="true">
+      </specification>    
+      <specification
+	        annotationType="FSM.State.Highlight"
+	        colorPreferenceKey="FSM.State.Highlight.COLOR"
+	        colorPreferenceValue="0,245,255"
+	        highlightPreferenceKey="FSM.State.Highlight.highlight"
+	        highlightPreferenceValue="true"
+	        includeOnPreferencePage="true"
+	        label="FSM.State.Highlight"
+	        overviewRulerPreferenceKey="org.eclipse.viatra2.slice.overview"
+	        overviewRulerPreferenceValue="true"
+	        presentationLayer="0"
+	        textPreferenceKey="org.eclipse.viatra2.slice.text"
+	        textPreferenceValue="true">
+      </specification> 
    </extension>
 	   
 

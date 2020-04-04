@@ -11,6 +11,7 @@ Import-Package: net.sourceforge.plantuml.eclipse,
  org.eclipse.core.runtime;version="3.4.0",
  org.eclipse.jface.text,
  org.eclipse.jface.viewers,
+ org.eclipse.swt.graphics,
  org.eclipse.ui,
  org.eclipse.ui.console,
  org.eclipse.ui.part
