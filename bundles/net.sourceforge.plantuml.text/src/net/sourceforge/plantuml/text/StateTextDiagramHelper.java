@@ -26,6 +26,7 @@ import org.eclipse.ui.IFileEditorInput;
 
 public class StateTextDiagramHelper  {
 	
+	//The strings used to declare the start and end of a stateMachine
 	final String prefix = "@start_state_machine", prefixRegex = prefix;
 	final String suffix = "@end_state_machine", suffixRegex = suffix;
 	
@@ -33,22 +34,27 @@ public class StateTextDiagramHelper  {
 	String stateSelected;
 	private ArrayList<String> addedTransitions;
 	
+	//Stores the custom made keys created in 'createKey()' which reference different '//FSM:' lines
 	private static HashSet<String> plantMarkerKey = new HashSet<String>();
 	
+	//These two arrays are explicitly linked. 
+	//The first one contains the names of the different annotation markers that are used to highlight various transitions in different colors
+	//The second one contains those marker colors as a string representation and are passed on to the plantuml library to color the transitions in their relevant colors.
 	private String[] allTransitionHighlights = {"FSM.Transition.Highlight_1", "FSM.Transition.Highlight_2", "FSM.Transition.Highlight_3", "FSM.Transition.Highlight_4", "FSM.Transition.Highlight_5", "FSM.Transition.Highlight_6"};
 	private String[] transitionColors = {"#Lime", "#Gold", "#FireBrick", "#Magenta", "#Indigo", "#DarkGreen"};
-	private int k = 0;
+	private int k = 0; //used to progressively iterate through the above arrays.
 	
 	//used to maintain consistency of diagram structure
 	HashMap<String, ArrayList<String>> textualDiagram;
 
 	
-	
-	
 	public StateTextDiagramHelper() {
 	
 	}
 	
+	//This class is used to store various information about an '//FSM:' line in the editor and is only used
+	//when the user suffix's the line with '{'. This means that the user wants to highlight more than 
+	//just the line, i.e. some code. This object is stored in a stack until a following '}' is found. 
 	class PendingState extends StateTextDiagramHelper {
 		String theLine;
 		String editorLine;
@@ -61,6 +67,7 @@ public class StateTextDiagramHelper  {
 		}
 	}
 	
+	//Class used to store all state machine references in the editor such as their lineNum, charStart and end....
 	class StateReference extends StateTextDiagramHelper {
 		String theLine;
 		String editorLine;
@@ -96,6 +103,7 @@ public class StateTextDiagramHelper  {
 		}
 	}
 	
+	//Class to describe transitions
 	class Transition extends StateTextDiagramHelper {
 		String leftState;
 		int leftCharStart;
@@ -143,16 +151,23 @@ public class StateTextDiagramHelper  {
 		
 	}
 	
-	//Check whether line is a descriptor or not
-	private static String stateDescriptor(String line) {
+	/**
+	 * Called iteratively on every line in the editor and checks whether it has '//FSM:' as its prefix
+	 * @param 	String - the line as seen in the editor
+	 * @return	String - null if the line is not a diagram descriptor, else return the line without the '//FSM:'
+	 */
+	private String stateDescriptor(String line) {
+		
 	    String theLine = line.replaceAll("\\s+", "").toLowerCase();
+	    
 	    if (theLine.length() <= 6) 
 	    	return null;
+	    
 	    if (theLine.substring(0,6).equals("//fsm:")) {
 	      int index = line.indexOf(":") + 1;
 	      if (line.contains("->") || line.contains("<-")) {
 	    	  if (line.contains("{")) {
-	    		  int anotherIndex = line.indexOf("{");
+	    		  int anotherIndex = line.indexOf("{"); //remove the curly bracket 
 	    		  return line.substring(index, anotherIndex);
 	    	  }
 	      }
@@ -161,7 +176,18 @@ public class StateTextDiagramHelper  {
 	    return null;
 	  }
 	
-	
+	/**
+	 * Called on every output from the function stateDescriptor(). 
+	 * Creates StateReference and Transition objects which store crucial info on the descriptive line. These objects are used frequently thoughout the program
+	 * @param line  - the string returned from stateDescriptor
+	 * @param editorLine - the line as seen in the editor
+	 * @param lineNum - ...
+	 * @param multiLineEnd - if the user used a '{', this specifies the lineNum where they closed it with '}', else it = -1
+	 * @param actualStates - list of all states so far
+	 * @param stateLinkers - datatype used to store the statereferences and link them to their state name
+	 * @param finder - 
+	 * @param document
+	 */
 	private void appendToLists(String line, String editorLine, int lineNum, int multiLineEnd, ArrayList<String> actualStates,
 			HashMap<String, ArrayList<StateReference>> stateLinkers, FindReplaceDocumentAdapter finder, IDocument document) throws BadLocationException {
 		////////////////////
@@ -184,21 +210,22 @@ public class StateTextDiagramHelper  {
 				index = line.indexOf("-") - 1;
 				leftState = line.substring(0, index).trim();
 				
-				int leftCharStart = markerRegion.getOffset();
+				int leftCharStart = markerRegion.getOffset(); //find the char positions of the left state
 				int leftCharEnd = markerRegion.getOffset() + leftState.length();
 				
 				index = line.indexOf(">") + 1;
 				int anotherIndex = line.length();
 				if (line.contains(":"))
 					anotherIndex = line.indexOf(":") - 1;
+				
 				rightState = line.substring(index, anotherIndex).trim();
-				int rightCharStart = markerRegion.getOffset() + index + 1;
+				int rightCharStart = markerRegion.getOffset() + index + 1; //find the char positions of the right state
 				int rightCharEnd = markerRegion.getOffset() + anotherIndex;
 				
-				if (multiLineEnd == -1) {
+				if (multiLineEnd == -1) { //if the method is called with multiLineEnd=1, it means that the user didnt specify '{' and therefore it is not a multiline desc
 					transition = new Transition(leftState, rightState, leftCharStart, leftCharEnd, rightCharStart, rightCharEnd);
 
-				} else {
+				} else { 
 					leftCharStart ++;
 					leftCharEnd ++;
 					transition = new Transition(leftState, rightState, leftCharStart, leftCharEnd, rightCharStart, rightCharEnd, rightCharEnd, document.getLineOffset(multiLineEnd));
@@ -211,15 +238,18 @@ public class StateTextDiagramHelper  {
 			}
 			
 			//ADD THE TRANSITION'S STATE REFERENCES
-
-			if (stateLinkers.containsKey(leftState)) {
-				stateReferences = stateLinkers.get(leftState);
+			//Adds them to a HashMap. key = stateName, and then for each state discovered there is an arraylist of 
+			//state references for that state. Clearly for transitions there will be duplicates as a transition can have up to 2 states. 
+			//therefore this state reference will be added to both states.
+		
+			if (stateLinkers.containsKey(leftState)) { //checks if a key with that state name exists 
+				stateReferences = stateLinkers.get(leftState); //if it does then add it...
 				stateReferences.add(stateReference);
 				stateLinkers.put(leftState, stateReferences);
 				
 			} else {
 
-				stateReferences.add(stateReference);
+				stateReferences.add(stateReference); // otherwise create a new key and entry. 
 				stateLinkers.put(leftState, stateReferences);
 			}
 			stateReferences = new ArrayList<StateReference>();
@@ -234,7 +264,9 @@ public class StateTextDiagramHelper  {
 				stateReferences.add(stateReference);
 				stateLinkers.put(rightState, stateReferences);
 			}
-	
+		//This else deals with the statements which arn't transitions such as...
+		//State1 : a state
+		//state State1 
 		} else if (line.contains(":") || line.trim().substring(0, 5).equals("state")) {
 			//STATES
 			String stateName = "";
@@ -253,8 +285,8 @@ public class StateTextDiagramHelper  {
 				}
 				
 				charStart = markerRegion.getOffset();
-				if (multiLineEnd == -1) {
-					charEnd = markerRegion.getOffset() + markerRegion.getLength();
+				if (multiLineEnd == -1) { //again, if multiLineEnd = -1, then user has not used '{' at  the end and 
+					charEnd = markerRegion.getOffset() + markerRegion.getLength(); //therefore not a multiline comment
 
 				} else {
 					charEnd = document.getLineOffset(multiLineEnd);
@@ -277,7 +309,7 @@ public class StateTextDiagramHelper  {
 				
 				
 			}
-
+			//Similar operation to the one above in transitions.. add the created stateReferences to the hashmap
 			if (stateLinkers.containsKey(stateName)) {
 				stateReferences = stateLinkers.get(stateName);
 				stateReferences.add(stateReference);
@@ -294,7 +326,8 @@ public class StateTextDiagramHelper  {
 			
 	}
 	
-	private void displayTransitionMarkers(StateReference stateReference, IPath path, IResource root) throws CoreException {
+	//
+	private void displayTransitionStateTransitionMarkers(StateReference stateReference, IPath path, IResource root) throws CoreException {
 		int lineNum = stateReference.lineNum;
 		Transition transition = stateReference.transition;
 		int charStart = transition.leftCharStart;
@@ -382,6 +415,10 @@ public class StateTextDiagramHelper  {
 		return wordString;
 	}
 	
+	//Similar to the hashmap used to store the statereferences, this does the same but instead of statereferences it stores the line as a string.
+	//Essentially it stores all of the lines used to describe the diagram and once they have all been collected it iterates through them appending
+	//them to a StringBuilder to be sent to the plant uml library. This is done so that the diagram remains consistent (the positioning of its components).
+	// I was getting various errors as the order of the lines matters. 
 	private void appendTextualDiagram(String stateName, String line) {
 		//all textual descs for this state
 		ArrayList<String> stateTextualDesc = new ArrayList<String>();
@@ -397,7 +434,8 @@ public class StateTextDiagramHelper  {
 		}
 	}
 	
-	
+	//This method is essentially on a loop as it gets called any time the user clicks within the //@state_state_machine and //end_state_machine, in the editor. 
+	//
 	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart,
 			final Map<String, Object> markerAttributes, IEditorInput editorInput) {
 		final boolean includeStart = prefix.startsWith("@"), includeEnd = suffix.startsWith("@");
@@ -439,6 +477,7 @@ public class StateTextDiagramHelper  {
 				    ArrayList<String> actualStates = new ArrayList<String>();
 				    textualDiagram = new HashMap<String, ArrayList<String>> (); 
 					stateSelected = null;
+					selectedLineNum = document.getLineOfOffset(selectionStart);
 
 				    k = 0;
 
@@ -513,7 +552,7 @@ public class StateTextDiagramHelper  {
 									if (transitionStateName == null) { //if not transition state, then highlight transition
 										String colorTransition = forwardTransitionLink(line);
 										appendTextualDiagram(stateName, backwardTransitionLink(colorTransition, className, lineNum) + "\n");
-										displayTransitionMarkers(stateReference, path, root);
+										displayTransitionStateTransitionMarkers(stateReference, path, root);
 									} else {
 										transitionStateSelected = true;
 									}
