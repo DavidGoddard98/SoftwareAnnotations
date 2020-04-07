@@ -4,6 +4,9 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.jface.text.IDocument;
@@ -11,6 +14,7 @@ import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import net.sourceforge.plantuml.eclipse.Activator;
@@ -72,8 +76,9 @@ public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextPro
 		final IDocument document = textEditor.getDocumentProvider().getDocument(editorInput);
 		final int selectionStart = ((ITextSelection) (selection != null ? selection : textEditor.getSelectionProvider().getSelection())).getOffset();
 		//FSM/////////////////////////////////////////////////////////////////
+		IResource root = StateTextDiagramHelper.getRoot(editorInput);
+		StateTextDiagramHelper.removeHighlights(root);
 		String providerInfo = Activator.getDefault().getDiagramTextProviderId(this);
-		System.out.println(providerInfo);
 		if (providerInfo.equals("net.sourceforge.plantuml.text.statemachineDiagramProvider")) {
 			return getStateTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes, editorInput);
 		} else
