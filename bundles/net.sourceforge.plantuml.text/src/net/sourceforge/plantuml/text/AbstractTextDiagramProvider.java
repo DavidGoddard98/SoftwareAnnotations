@@ -11,6 +11,7 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextSelection;
+import org.eclipse.jface.text.source.SourceViewer;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
@@ -23,6 +24,7 @@ import net.sourceforge.plantuml.eclipse.utils.DiagramTextProvider2;
 import net.sourceforge.plantuml.eclipse.utils.PlantumlConstants;
 
 public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextProvider implements DiagramTextProvider2, DiagramTextIteratorProvider {
+	IDocument document;
 
 	public AbstractTextDiagramProvider() {
 		setEditorType(ITextEditor.class);
@@ -70,20 +72,20 @@ public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextPro
 	}
 	
 	
-	
 	protected StringBuilder getDiagramTextLines(final IEditorPart editorPart, final IEditorInput editorInput, final ISelection selection, final Map<String, Object> markerAttributes) {
 		final ITextEditor textEditor = (ITextEditor) editorPart;
-		final IDocument document = textEditor.getDocumentProvider().getDocument(editorInput);
+		document = textEditor.getDocumentProvider().getDocument(editorInput);
 		final int selectionStart = ((ITextSelection) (selection != null ? selection : textEditor.getSelectionProvider().getSelection())).getOffset();
 		//FSM/////////////////////////////////////////////////////////////////
+		
 		IResource root = StateTextDiagramHelper.getRoot(editorInput);
 		StateTextDiagramHelper.removeHighlights(root);
 		String providerInfo = Activator.getDefault().getDiagramTextProviderId(this);
-		if (providerInfo.equals("net.sourceforge.plantuml.text.statemachineDiagramProvider")) {
+		if (providerInfo.equals("net.sourceforge.plantuml.text.statemachineDiagramProvider")) { //user used @start_state_machine
 			return getStateTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes, editorInput);
+		////////////////////////////////////////////////////////////////////////
 		} else
 			return getTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes);
-		/////////////////////////////////////////////////////////////////////////
 	}
 	
 	public String getDiagramText(final CharSequence lines) {

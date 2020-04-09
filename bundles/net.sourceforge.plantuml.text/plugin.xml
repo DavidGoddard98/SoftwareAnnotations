@@ -96,7 +96,6 @@
             	-
    </extension>
    
-   
    <extension   
 	        point="org.eclipse.ui.editors.annotationTypes">
 	   <type
@@ -132,13 +131,6 @@
 	        name="FSM.Transition.Highlight_6">
 	  </type>	  
    </extension>
-   
-
-   
-   
-   
-   
-   
    
 	
    <extension
