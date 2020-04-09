@@ -52,6 +52,8 @@ public class Activator extends Plugin implements DiagramTextProviderProcessor {
 					try {
 						final String diagramPrefix = ces.getAttribute("diagramPrefix");
 						final String diagramSuffix = ces.getAttribute("diagramSuffix");
+				
+						
 						final String fileExtensionsString = ces.getAttribute("fileExtensions");
 						final String[] fileExtensions = (fileExtensionsString != null ? fileExtensionsString.split("[, ]") : new String[0]);
 						final TextEditorDiagramTextProvider textDiagramProvider = new TextEditorDiagramTextProvider(

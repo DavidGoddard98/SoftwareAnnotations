@@ -2,31 +2,19 @@ package net.sourceforge.plantuml.text;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Scanner;
 
-
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspace;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IPath;
-
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.FindReplaceDocumentAdapter;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.viewers.ISelection;
-
-import org.eclipse.ui.IEditorInput;
-import org.eclipse.ui.IFileEditorInput;
 
 import net.sourceforge.plantuml.eclipse.utils.PlantumlConstants;
 import net.sourceforge.plantuml.eclipse.utils.PlantumlUtil;
@@ -35,12 +23,8 @@ public class TextDiagramHelper {
 
 	private final String prefix, prefixRegex;
 	private final String suffix, suffixRegex;
-	HashMap<String, Integer> diagramText = new HashMap<String, Integer>();
-	private boolean toggle = true;
 
-	
-	public TextDiagramHelper(final String prefix, final String prefixRegex, final String suffix,
-			final String suffixRegex) {
+	public TextDiagramHelper(final String prefix, final String prefixRegex, final String suffix, final String suffixRegex) {
 		super();
 		this.prefix = prefix;
 		this.prefixRegex = prefixRegex;
@@ -48,30 +32,10 @@ public class TextDiagramHelper {
 		this.suffixRegex = suffixRegex;
 	}
 
-	
-
-
-	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart,
-			final Map<String, Object> markerAttributes, IEditorInput editorInput) {
+	public StringBuilder getDiagramTextLines(final IDocument document, final int selectionStart, final Map<String, Object> markerAttributes) {
 		final boolean includeStart = prefix.startsWith("@"), includeEnd = suffix.startsWith("@");
 		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
-		IPath path = ((IFileEditorInput) editorInput).getFile().getFullPath();
-		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		IWorkspaceRoot wsRoot = workspace.getRoot();
-		IResource root = wsRoot.findMember(path);
-		
-		
-		/////////////////////////////////////////
-		if (toggle) {
-			StateMachineEnhance.initializeKeys(root, path, document);
-			toggle = false;
-		}
-		/////////////////////////////////////////
-		
-	
-		
 		try {
-
 			// search backward and forward start and end
 			IRegion start = finder.find(selectionStart, prefixRegex, false, true, false, true);
 			// if not start or end is before start, we must search backward
@@ -85,75 +49,20 @@ public class TextDiagramHelper {
 				}
 			}
 			if (start != null) {
-
-				final int startOffset = start.getOffset(),
-						startLine = document.getLineOfOffset(startOffset + (includeStart ? 0 : start.getLength()));
-
+				final int startOffset = start.getOffset(), startLine = document.getLineOfOffset(startOffset + (includeStart ? 0 : start.getLength()));
 				final IRegion end = finder.find(startOffset + start.getLength(), suffixRegex, true, true, false, true);
 				if (end != null && end.getOffset() >= selectionStart) {
-				
-
-
 					final int endOffset = end.getOffset() + end.getLength();
-					StringBuilder result = new StringBuilder();
-					final int maxLine = Math.min(document.getLineOfOffset(endOffset) + (includeEnd ? 1 : 0),
-							document.getNumberOfLines());
-
-					
-					///////////////////////////////////////////////////////////////////////////////////////////////////////////
-					HashSet<String> doneStates = new HashSet<String>();
-					
-					diagramText.clear();
-					boolean fsm = false;
+					//					String linePrefix = document.get(startLinePos, startOffset - startLinePos).trim();
+					final StringBuilder result = new StringBuilder();
+					final int maxLine = Math.min(document.getLineOfOffset(endOffset) + (includeEnd ? 1 : 0), document.getNumberOfLines());
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
-						diagramText.put(line, lineNum + 1);
-						
-						if(!line.contains("->") && line.contains("State")) {
-							String stateName = StateMachineEnhance.getStateName(line);
-
-							if (!doneStates.contains(stateName)) {
-					    		doneStates.add(stateName);
-	
-					    	}
-						}
-						if (StateMachineEnhance.ensureFSM(line)) {
-								fsm = true;
+						result.append(line);
+						if (! line.endsWith("\n")) {
+							result.append("\n");
 						}
 					}
-					
-					StateMachineEnhance.removeHighlights(root);
-//					List<String> transitionStates = new ArrayList<String>();
-//					List<String> transitionStateNames = new ArrayList<String>();
-					
-					if (fsm) {
-						String lastStateName = "";
-
-						for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
-							final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
-							
-							lastStateName = StateMachineEnhance.enhanceStateMachine(line, lineNum, result, selectionStart, diagramText, document, path,  lastStateName, root );
-							if (!line.endsWith("\n")) {
-								result.append("\n");
-							}
-						}
-					////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
-					} else {
-						for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
-							final String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();
-
-								
-						
-							result.append(line);
-							
-							if (!line.endsWith("\n")) {
-								result.append("\n");
-							}
-						}
-					}
-						
-					System.out.println(result);
-					
 					markerAttributes.put(IMarker.CHAR_START, start.getOffset());
 					return result;
 				}
@@ -168,7 +77,6 @@ public class TextDiagramHelper {
 	}
 
 	public String getDiagramText(final StringBuilder lines) {
-
 		final int prefixPos = lines.indexOf(prefix);
 		int start = Math.max(prefixPos, 0);
 		final int suffixPos = lines.lastIndexOf(suffix);
@@ -200,7 +108,6 @@ public class TextDiagramHelper {
 	}
 
 	public String getDiagramText(final IFile file) {
-
 		final IMarker marker = PlantumlUtil.getPlantUmlMarker(file, false);
 		int startOffset = marker.getAttribute(IMarker.CHAR_START, 0);
 		StringBuilder builder = null;
@@ -234,10 +141,8 @@ public class TextDiagramHelper {
 		}
 		return null;
 	}
-	
-	//FSM version
-	public Iterator<ISelection> getDiagramText(final IDocument document) {
 
+	public Iterator<ISelection> getDiagramText(final IDocument document) {
 		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
 		int selectionStart = 0;
 		final Collection<ISelection> selections = new ArrayList<ISelection>();
@@ -248,11 +153,9 @@ public class TextDiagramHelper {
 				if (start == null || end == null) {
 					break;
 				}
-				final int diagramStart = start.getOffset() + start.getLength() + 1,
-						  diagramLine = document.getLineOfOffset(diagramStart);
-				final String line = document
-						.get(document.getLineOffset(diagramLine), document.getLineLength(diagramLine)).trim();
-				final ISelection selection = new TextSelection(start.getOffset() , end.getOffset() - start.getOffset()) {
+				final int diagramStart = start.getOffset() + start.getLength() + 1, diagramLine = document.getLineOfOffset(diagramStart);
+				final String line = document.get(document.getLineOffset(diagramLine), document.getLineLength(diagramLine)).trim();
+				final ISelection selection = new TextSelection(start.getOffset() + start.getLength(), 0) {
 					@Override
 					public String toString() {
 						return line;
@@ -265,35 +168,4 @@ public class TextDiagramHelper {
 		}
 		return selections.iterator();
 	}
-
-	//original version
-//	public Iterator<ISelection> getDiagramText(final IDocument document) {
-//
-//		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
-//		int selectionStart = 0;
-//		final Collection<ISelection> selections = new ArrayList<ISelection>();
-//		try {
-//			while (true) {
-//				final IRegion start = finder.find(selectionStart, prefixRegex, true, true, false, true);
-//				final IRegion end = finder.find(selectionStart, suffixRegex, true, true, false, true);
-//				if (start == null || end == null) {
-//					break;
-//				}
-//				final int diagramStart = start.getOffset() + start.getLength() + 1,
-//						diagramLine = document.getLineOfOffset(diagramStart);
-//				final String line = document
-//						.get(document.getLineOffset(diagramLine), document.getLineLength(diagramLine)).trim();
-//				final ISelection selection = new TextSelection(start.getOffset() + start.getLength(), 0) {
-//					@Override
-//					public String toString() {
-//						return line;
-//					}
-//				};
-//				selections.add(selection);
-//				selectionStart = end.getOffset() + end.getLength() + 1;
-//			}
-//		} catch (final BadLocationException e) {
-//		}
-//		return selections.iterator();
-//	}
 }

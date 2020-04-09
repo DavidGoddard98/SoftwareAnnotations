@@ -38,3 +38,4 @@ Export-Package: net.sourceforge.plantuml.eclipse,
  net.sourceforge.plantuml.eclipse.utils,
  net.sourceforge.plantuml.eclipse.views
 Bundle-ActivationPolicy: lazy
+
