@@ -111,7 +111,7 @@ public class OSMGenerator {
  		else  return ">";
  	}
 	
-	StringBuilder result;
+	
 	ArrayList<String> addedTransitions;
 	ArrayList<String> storedEvents;
 	ArrayList<String> methodCalls;
@@ -121,8 +121,12 @@ public class OSMGenerator {
 	Stack<String> currentBlock;
 	Stack<String> events;
 	Stack<String> visibleStates;
+	Stack<String> savedVisibleStates;
+	Stack<String> ignoreStack;
+	
 	String lastState = null;
 	String caseName = null;
+	StringBuilder result;
 	//conditional
 	//switch-state
 	//case-state
@@ -130,9 +134,11 @@ public class OSMGenerator {
 	boolean callBack = false;
 	boolean ignore = false;
 	boolean stopIgnoring = false;
+	boolean switchStateActive = false;
 	
 	
-	Stack<String> ignoreStack;
+	
+	
 	private void identifyPattern(String line, int lineNum) {
 		System.out.println();
 		for (int k = 0; k<currentBlock.size(); k++) { 
@@ -152,259 +158,50 @@ public class OSMGenerator {
 			} else
 				return;
 		}
-//		System.out.println("STORED EVENTS .SIZE: " + storedEvents.size());
-//		System.out.println("VISIBLE STATES .SIZE" + visibleStates.size());
+		
+		//testing
+		StringBuilder viz = new StringBuilder();
+		viz.append("\n");
+		viz.append("VISIBLE STATES;");
+		viz.append("\n");
+
+		for (String visibleState : visibleStates) {
+			viz.append(visibleState + " ; "); 
+		}
+		viz.append("\n");
+		viz.append("EVENTS");
+		viz.append("\n");
+
+		for (String event : events) {
+			viz.append(event + " ; "); 
+		}
+		viz.append("\n");
+		viz.append("CURRENTBLOCKS;");
+		viz.append("\n");
+
+		for (String block : currentBlock) {
+			viz.append(block + " ; "); 
+		}
+		viz.append("\n");
+		viz.append("STOREDEVNETS;");
+		viz.append("\n");
+
+		for (String storedEvent : storedEvents) {
+			viz.append(storedEvent + " ; "); 
+		}
+		viz.append("\n");
+		System.out.println(viz);
+
 		
 		for (RegexInfo info : patternIdentifier.patternStore) {
 			Matcher m = info.pattern.matcher(line);
 			if (m.matches()) {
-//				System.out.println("VISIBLE STATES .SIZE" + visibleStates.size());
-//				System.out.println(lastState);
-				switch(info.identifier) {
 				
-				case 0: //call back...
-					//remove obvious once that arnt there.
-					System.out.println("found a callback: " + line);
-					if (line.contains("Systen.out.print")) break;
-					if (!visibleStates.contains(lastState) && lastState != null) {
-						System.out.println(lastState);
-						visibleStates.push(lastState);
-						events.push("call-back");
-						
-					}
-					break;
-				case 1: //complex if guard
-					 System.out.println("good if guard " + line + "statement: " + m.group(2)) ;
-					 String expression = m.group(2);
-					
-					 if (!expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "").equals(expression)) {
-						 boolean equalityStatesFound = false;
-						 System.out.println("here");
-						 String aString = expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "equality");
-						 //STOP SELF LOOPING
-					   	 while (!equalityStatesFound) {
-					   		 
-					         if (aString.indexOf("equality") != -1) {
-					        	 
-
-					             int index = aString.indexOf("equality");
-					        	 int anotherIndex = aString.indexOf(" ", index);
-					        	 if (anotherIndex == -1) anotherIndex = aString.length();
-					        	 String aState = aString.substring(index + 8, anotherIndex);
-					        	 if (aState.equals("")) break;
-					        	 System.out.println("pushing this state onto visible states : " + aState);
-					        	 visibleStates.push(aState.trim());
-					        	 aString = aString.substring(aString.indexOf(aState));
-					         } else equalityStatesFound = true;
-					   	 }
-						
-					 }
-							//equality state conditional
-//					 } else if (!anotherExpression.replaceAll("(state)\\s+\\!=\\=\\s+(valid_states\\.)", "inEquality").equals(anotherExpression)) {
-//						
-//						 boolean inEqualityStatesFound = false;
-//
-//						 
-//					   	 while (!inEqualityStatesFound) {
-//					   		 
-//					         if (anotherExpression.indexOf("inEquality") != -1) {
-//					        	 
-//
-//					             int index = anotherExpression.indexOf("inEquality");
-//					        	 int anotherIndex = anotherExpression.indexOf(" ", index);
-//					        	 if (anotherIndex == -1) anotherIndex = anotherExpression.length();
-//					        	 String aState = anotherExpression.substring(index + 8, anotherIndex);
-//					        	 visibleStates.push(aState.trim());
-//					        	 anotherExpression = anotherExpression.substring(anotherExpression.indexOf(aState));
-//					         } else inEqualityStatesFound = true;
-//					   	 }
-							
-					
-					 
-					 
-					 currentBlock.push("conditional");
-					 events.push(m.group(2)); //the condition
-				 
-					
-					break;
-				case 2: //switch state
-					currentBlock.push("switch-state");
-					break;
-				case 3: //state change
-					System.out.println("state Change: " + line + "the State: " + m.group(4));
-					StringBuilder transition = new StringBuilder();
-
-					if (lastState == null) {
-						lastState = m.group(4);
-						result.append("state " + lastState);
-						result.append("\n");
-					} 
-					
-					if (currentBlock.size() > 1 && currentBlock.peek() == "conditional" && currentBlock.get(currentBlock.size()-2) != "conditional")
-						storedEvents.add(negateCondition(events.peek()));
-					if (!visibleStates.isEmpty()) {
-						for (int j=events.size()-1; j>=0; j--) {
-							if (events.get(j).equals("call-back")) {
-								System.out.println("callback = true");
-								callBack =true;
-								break;
-							
-							} 
-							transition.append(events.get(j));
-							if (j>0) transition.append("; ");
-
-						}	
-						if (transition.length() == 0) transition.append("No event found");
-						if (callBack) {
-							System.out.println("appending transition " + visibleStates.peek() + " -down-> " + m.group(4) + " : " + transition);
-							result.append(visibleStates.peek() + " -down-> " + m.group(4) + " : " + transition);
-							result.append("\n");
-						} else {
-							for (String visibleState: visibleStates) {
-								System.out.println("appending transition " + visibleState + " -down-> " + m.group(4) + " : " + transition);
-								result.append(visibleState + " -down-> " + m.group(4) + " : " + transition);
-								result.append("\n");
-
-							}
-						}
-						
-						
-					}
-					callBack = false;
-
-					lastState = m.group(4);
-
-					
-
-					
-					break;
-				case 4: //closed }
-					
-					if (!currentBlock.isEmpty()) currentBlock.pop();
-					
-					if (!events.isEmpty()) {
-						if (events.size() >1 && events.peek() == "call-back") {
-							events.pop();
-							events.pop();
-						} else {
-							events.pop();
-						}
 				
-					}
-					
-					
-					break;
-				case 5: //decleration
-					System.out.println("decleration: " + line);
-					
-					break;
-				case 6: //simpleMethodCal
-					int index = m.group(1).indexOf("(");
-					String method = m.group(1).substring(0, index);
-					System.out.println(method);
-					if (declaredMethods.contains(method) && !methodCalls.contains(m.group(1))){
-						methodCalls.add(m.group(1));
-						System.out.println("addding :" + m.group(1));
-					}
-					if (exitConditions!= null && exitConditions.contains(m.group(1))) {
-						System.out.println("exit conditions contains methiod");
-						storedEvents.add(m.group(1));
-						for (String visibleState : visibleStates) {
-							result.append(visibleState + " -down-> " + "[*] : " + m.group(1));
-							result.append("\n");
-						}
-					}
-					
-				
-					
-					System.out.println("simple method call: " + line + "method: " + m.group(1));
-					break;
-				case 7: //complexMethodcall
-					System.out.println("complex method call: " + line + "method: " + m.group(3));
-					
-					break;
-				case 8: //case 
-					if (currentBlock.contains("switch-state")) {
-						visibleStates.clear();
-						currentBlock.push("case-state"); //we know that the case is a state...
-						storedEvents.clear();
-						if (m.group(2).equals("INIT")) {
-							visibleStates.push("[*]");
-						}
-						else {
-							visibleStates.push(m.group(2));
-							result.append("state " + m.group(2));
-							result.append("\n");
-							lastState = m.group(2);
-						}
-						caseName = m.group(2);
-
-						
-					}
-						
-					System.out.println("caseState: " + line + "the stateName: " + m.group(2));
-					
-					
-					break;
-				case 9:  //break regex
-					if (currentBlock.peek() == "conditional") {
-						//probably dont need the .contains("case-state") above...
-						ignore = true;
-						ignoreStack.push("ignore");
-						break;
-						
-					
-					} else if (currentBlock.peek() == "case-state") {
-						if (currentBlock.contains("while-loop") && !caseName.equals("INIT")) {
-							boolean selfLoop = true;
-							transition = new StringBuilder();
-							for (int j =0; j<storedEvents.size(); j++) {
-								if (exitConditions.contains(storedEvents.get(j))) { //exit state no self loop
-									selfLoop = false;
-								}
-								transition.append(storedEvents.get(j));
-								if (j != storedEvents.size() -1) transition.append(" && ");
-							}
-							if (selfLoop) {
-								if (transition.length() == 0) transition.append("No event found");
-								System.out.println("here :" + caseName);
-								result.append(caseName + " -> " + caseName + " : " + transition);
-								result.append("\n");
-								for (String methodCall : methodCalls) {
-									result.append("state " + caseName + " : " + methodCall + ";");
-									result.append("\n");
-								}
-							}
-							
-						}
-						methodCalls = new ArrayList<String>();
-						visibleStates.clear();
-						while(currentBlock.peek() != "case-state") currentBlock.pop(); 
-						currentBlock.pop();
-					}
-					
-					break;
-				case 10: //whileLoop
-					currentBlock.push("while-loop");
-				case 11: //methodDecleration
-					System.out.println("method decleration: " + line);
-					String methodDec = m.group(2);
-					System.out.println("adding method: " + methodDec);
-					if (!declaredMethods.contains(methodDec))
-						declaredMethods.add(methodDec);
-					
-					break;
-				case 12: //method decleration exception
-					System.out.println("method dec with exception: " + line );
-				    methodDec = m.group(2);
-					if (!declaredMethods.contains(methodDec)) {
-						declaredMethods.add(methodDec);
-						System.out.println("adding method: " + methodDec);
-					}
-					
-					break;
-				default: 
-					System.out.println("no match found");
+				if (switchStateActive) {
+					controlLoop(info.identifier, line, lineNum, m);
+				} else {
+					normalFlow(info.identifier, line, lineNum, m);
 				}
 			} else if (m.find() && info.identifier == 13) { //fsm comment
 				System.out.println("fsm comment " + line);
@@ -421,6 +218,496 @@ public class OSMGenerator {
 				
 			}
 		}
+				
+	}
+	
+	private void controlLoop(int patternNo, String line, int lineNum, Matcher m) {
+		switch(patternNo) {
+		
+			case 0: //call back...
+				//remove obvious once that arnt there.
+				System.out.println("found a callback: " + line);
+				if (line.contains("Systen.out.print")) break;
+				if (!visibleStates.contains(lastState) && lastState != null) {
+					System.out.println(lastState);
+					visibleStates.push(lastState);
+					events.push("call-back");
+					
+				}
+				break;
+			case 1: //complex if guard
+				 System.out.println("good if guard " + line + "statement: " + m.group(2)) ;				 
+				 currentBlock.push("conditional");
+				 events.push(m.group(2)); //the condition
+			 
+				
+				break;
+			case 2: //switch state
+				currentBlock.push("switch-state");
+				visibleStates.clear();
+				break;
+			case 3: //state change
+				System.out.println("state Change: " + line + "the State: " + m.group(4));
+				StringBuilder transition = new StringBuilder();
+	
+				if (lastState == null) {
+					lastState = m.group(4);
+					result.append("state " + lastState);
+					result.append("\n");
+				} 
+				
+				if (currentBlock.size() > 1 && currentBlock.peek() == "conditional" && currentBlock.get(currentBlock.size()-2) != "conditional")
+					storedEvents.add(negateCondition(events.peek()));
+				if (!visibleStates.isEmpty()) {
+					for (int j=events.size()-1; j>=0; j--) {
+						if (events.get(j).equals("call-back")) {
+							System.out.println("callback = true");
+							callBack =true;
+							break;
+						
+						} 
+						transition.append(events.get(j));
+						if (j>0) transition.append("; ");
+	
+					}	
+					if (transition.length() == 0) transition.append("No event found");
+					if (callBack) {
+						System.out.println("appending transition " + visibleStates.peek() + " -down-> " + m.group(4) + " : " + transition);
+						result.append(visibleStates.peek() + " -down-> " + m.group(4) + " : " + transition);
+						result.append("\n");
+					} else {
+						for (String visibleState: visibleStates) {
+							System.out.println("appending transition " + visibleState + " -down-> " + m.group(4) + " : " + transition);
+							result.append(visibleState + " -down-> " + m.group(4) + " : " + transition);
+							result.append("\n");
+	
+						}
+					}
+					
+					
+				}
+				callBack = false;
+	
+				lastState = m.group(4);
+	
+				
+	
+				
+				break;
+			case 4: //closed }
+				
+				if (!currentBlock.isEmpty()) {
+					if (currentBlock.peek().equals("switch-state")) {
+						switchStateActive = false;
+						currentBlock.pop();
+						return;
+					} else { 
+						currentBlock.pop();
+					}
+							
+				}
+				
+				if (!events.isEmpty()) {
+					if (events.size() >1 && events.peek() == "call-back") {
+						events.pop();
+						events.pop();
+					} else {
+						events.pop();
+					}
+			
+				}
+				
+				
+				
+				break;
+			case 5: //decleration
+				System.out.println("decleration: " + line);
+				
+				break;
+			case 6: //simpleMethodCal
+				int index = m.group(1).indexOf("(");
+				String method = m.group(1).substring(0, index);
+				System.out.println(method);
+				if (declaredMethods.contains(method) && !methodCalls.contains(m.group(1))){
+					methodCalls.add(m.group(1));
+					System.out.println("addding :" + m.group(1));
+				}
+				if (exitConditions!= null && exitConditions.contains(m.group(1))) {
+					System.out.println("exit conditions contains methiod");
+					storedEvents.add(m.group(1));
+					for (String visibleState : visibleStates) {
+						result.append(visibleState + " -down-> " + "[*] : " + m.group(1));
+						result.append("\n");
+					}
+				}
+				
+			
+				
+				System.out.println("simple method call: " + line + "method: " + m.group(1));
+				break;
+			case 7: //complexMethodcall
+				System.out.println("complex method call: " + line + "method: " + m.group(3));
+				
+				break;
+			case 8: //case 
+				
+				visibleStates.clear();
+				currentBlock.push("case-state"); //we know that the case is a state...
+				storedEvents.clear();
+				if (m.group(2).equals("INIT")) {
+					visibleStates.push("[*]");
+				}
+				else {
+					visibleStates.push(m.group(2));
+					result.append("state " + m.group(2));
+					result.append("\n");
+					lastState = m.group(2);
+				}
+				caseName = m.group(2);
+
+				System.out.println("caseState: " + line + "the stateName: " + m.group(2));
+				
+				
+				break;
+			case 9:  //break regex
+				if (currentBlock.peek() == "conditional") {
+					//probably dont need the .contains("case-state") above...
+					ignore = true;
+					ignoreStack.push("ignore");
+					break;
+					
+				
+				} else if (currentBlock.peek() == "case-state") {
+					if (currentBlock.contains("while-loop") && !caseName.equals("INIT")) {
+						boolean selfLoop = true;
+						transition = new StringBuilder();
+						for (int j =0; j<storedEvents.size(); j++) {
+							if (exitConditions.contains(storedEvents.get(j))) { //exit state no self loop
+								selfLoop = false;
+							}
+							transition.append(storedEvents.get(j));
+							if (j != storedEvents.size() -1) transition.append(" && ");
+						}
+						if (selfLoop) {
+							if (transition.length() == 0) transition.append("No event found");
+							System.out.println("here :" + caseName);
+							result.append(caseName + " -> " + caseName + " : " + transition);
+							result.append("\n");
+							for (String methodCall : methodCalls) {
+								result.append("state " + caseName + " : " + methodCall + ";");
+								result.append("\n");
+							}
+						}
+						
+					}
+					methodCalls = new ArrayList<String>();
+					visibleStates.clear();
+					while(currentBlock.peek() != "case-state") currentBlock.pop(); 
+					currentBlock.pop();
+				}
+				
+				break;
+			case 10: //whileLoop
+				currentBlock.push("while-loop");
+			case 11: //methodDecleration
+				System.out.println("method decleration: " + line);
+				String methodDec = m.group(2);
+				System.out.println("adding method: " + methodDec);
+				if (!declaredMethods.contains(methodDec))
+					declaredMethods.add(methodDec);
+				
+				break;
+			case 12: //method decleration exception
+				System.out.println("method dec with exception: " + line );
+			    methodDec = m.group(2);
+				if (!declaredMethods.contains(methodDec)) {
+					declaredMethods.add(methodDec);
+					System.out.println("adding method: " + methodDec);
+				}
+				
+				break;
+			default: 
+				System.out.println("no match found");
+			}
+	
+	
+	}
+	
+	private void normalFlow(int patternNo, String line, int lineNum, Matcher m) {
+		switch(patternNo) {
+
+			case 0: //call back...
+				//remove obvious once that arnt there.
+				System.out.println("found a callback: " + line);
+				if (line.contains("Systen.out.print")) break;
+				if (!visibleStates.contains(lastState) && lastState != null) {
+					System.out.println(lastState);
+					visibleStates.push(lastState);
+					events.push("call-back");
+					
+				}
+				break;
+			case 1: //complex if guard
+				 System.out.println("good if guard " + line + "statement: " + m.group(2)) ;
+				 String expression = m.group(2);
+				
+				 if (!expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "").equals(expression)) {
+					 currentBlock.push("conditional-state");
+					 events.push(m.group(2)); //the condition
+					 savedVisibleStates = visibleStates;
+					 visibleStates = new Stack<String>();
+					 boolean equalityStatesFound = false;
+					 System.out.println("here");
+					 String aString = expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "equality");
+					 //STOP SELF LOOPING
+				   	 while (!equalityStatesFound) {
+				   		 
+				         if (aString.indexOf("equality") != -1) {
+				        	 
+		
+				             int index = aString.indexOf("equality");
+				        	 int anotherIndex = aString.indexOf(" ", index);
+				        	 if (anotherIndex == -1) anotherIndex = aString.length();
+				        	 String aState = aString.substring(index + 8, anotherIndex);
+				        	 if (aState.equals("")) break;
+				        	 System.out.println("pushing this state onto visible states : " + aState);
+				        	 visibleStates.push(aState.trim());
+				        	 aString = aString.substring(aString.indexOf(aState));
+				         } else equalityStatesFound = true;
+				   	 }
+					
+				 }else {
+					 currentBlock.push("conditional");
+					 events.push(m.group(2)); //the condition
+				 }
+				
+						//equality state conditional
+		//			 } else if (!anotherExpression.replaceAll("(state)\\s+\\!=\\=\\s+(valid_states\\.)", "inEquality").equals(anotherExpression)) {
+		//				
+		//				 boolean inEqualityStatesFound = false;
+		//
+		//				 
+		//			   	 while (!inEqualityStatesFound) {
+		//			   		 
+		//			         if (anotherExpression.indexOf("inEquality") != -1) {
+		//			        	 
+		//
+		//			             int index = anotherExpression.indexOf("inEquality");
+		//			        	 int anotherIndex = anotherExpression.indexOf(" ", index);
+		//			        	 if (anotherIndex == -1) anotherIndex = anotherExpression.length();
+		//			        	 String aState = anotherExpression.substring(index + 8, anotherIndex);
+		//			        	 visibleStates.push(aState.trim());
+		//			        	 anotherExpression = anotherExpression.substring(anotherExpression.indexOf(aState));
+		//			         } else inEqualityStatesFound = true;
+		//			   	 }
+						
+				
+				 
+				 
+			
+			 
+				
+				break;
+			case 2: //switch state
+				currentBlock.push("switch-state");
+				switchStateActive = true;
+				System.out.println("SWITCHING TO CONTROL LOOP");
+				visibleStates.clear();
+				return;
+			case 3: //state change
+				System.out.println("state Change: " + line + "the State: " + m.group(4));
+				StringBuilder transition = new StringBuilder();
+		
+				if (lastState == null) {
+					
+					lastState = m.group(4);
+					result.append("state " + lastState);
+					result.append("\n");
+					visibleStates.push(lastState);
+					result.append("[*] -> " + lastState);
+					result.append("\n");
+					break;
+				} 
+				
+				if (currentBlock.size() > 1 && currentBlock.peek() == "conditional" && currentBlock.get(currentBlock.size()-2) != "conditional")
+					storedEvents.add(negateCondition(events.peek()));
+				if (!visibleStates.isEmpty()) {
+					for (int j=events.size()-1; j>=0; j--) {
+						if (events.get(j).equals("call-back")) {
+							System.out.println("callback = true");
+							callBack =true;
+							break;
+						
+						} 
+						transition.append(events.get(j));
+						if (j>0) transition.append("; ");
+		
+					}	
+					if (transition.length() == 0) transition.append("No event found");
+					if (callBack) {
+						System.out.println("appending transition " + visibleStates.peek() + " -down-> " + m.group(4) + " : " + transition);
+						result.append(visibleStates.peek() + " -down-> " + m.group(4) + " : " + transition);
+						result.append("\n");
+					} else {
+						for (String visibleState: visibleStates) {
+							System.out.println("appending transition " + visibleState + " -down-> " + m.group(4) + " : " + transition);
+							result.append(visibleState + " -down-> " + m.group(4) + " : " + transition);
+							result.append("\n");
+		
+						}
+					}
+					
+					
+				}
+				callBack = false;
+		
+				lastState = m.group(4);
+		
+				
+		
+				
+				break;
+			case 4: //closed }
+				
+				if (!currentBlock.isEmpty()) {
+					if (currentBlock.peek().equals("conditional-state")) {
+						visibleStates = savedVisibleStates;
+						currentBlock.pop();
+					} else {
+						currentBlock.pop();
+
+					}
+				}
+				
+				if (!events.isEmpty()) {
+					if (events.size() >1 && events.peek() == "call-back") {
+						events.pop();
+						events.pop();
+					} else {
+						events.pop();
+					}
+			
+				}
+				
+				
+				break;
+			case 5: //decleration
+				System.out.println("decleration: " + line);
+				
+				break;
+			case 6: //simpleMethodCal
+				int index = m.group(1).indexOf("(");
+				String method = m.group(1).substring(0, index);
+				System.out.println(method);
+				if (declaredMethods.contains(method) && !methodCalls.contains(m.group(1))){
+					methodCalls.add(m.group(1));
+					System.out.println("addding :" + m.group(1));
+				}
+				if (exitConditions!= null && exitConditions.contains(m.group(1))) {
+					System.out.println("exit conditions contains methiod");
+					storedEvents.add(m.group(1));
+						
+				
+					for (String visibleState : visibleStates) {
+						result.append(visibleState + " -down-> " + "[*] : " + m.group(1));
+						result.append("\n");
+					}
+					
+					
+				}
+				
+			
+				
+				System.out.println("simple method call: " + line + "method: " + m.group(1));
+				break;
+			case 7: //complexMethodcall
+				System.out.println("complex method call: " + line + "method: " + m.group(3));
+				
+				break;
+			case 8: //case 
+				if (currentBlock.contains("switch-state")) {
+					visibleStates.clear();
+					currentBlock.push("case-state"); //we know that the case is a state...
+					storedEvents.clear();
+					if (m.group(2).equals("INIT")) {
+						visibleStates.push("[*]");
+					}
+					else {
+						visibleStates.push(m.group(2));
+						result.append("state " + m.group(2));
+						result.append("\n");
+						lastState = m.group(2);
+					}
+					caseName = m.group(2);
+		
+					
+				}
+					
+				System.out.println("caseState: " + line + "the stateName: " + m.group(2));
+				
+				
+				break;
+			case 9:  //break regex
+				if (currentBlock.peek() == "conditional") {
+					//probably dont need the .contains("case-state") above...
+					ignore = true;
+					ignoreStack.push("ignore");
+					break;
+					
+				
+				} else if (currentBlock.peek() == "case-state") {
+					if (currentBlock.contains("while-loop") && !caseName.equals("INIT")) {
+						boolean selfLoop = true;
+						transition = new StringBuilder();
+						for (int j =0; j<storedEvents.size(); j++) {
+							if (exitConditions.contains(storedEvents.get(j))) { //exit state no self loop
+								selfLoop = false;
+							}
+							transition.append(storedEvents.get(j));
+							if (j != storedEvents.size() -1) transition.append(" && ");
+						}
+						if (selfLoop) {
+							if (transition.length() == 0) transition.append("No event found");
+							System.out.println("here :" + caseName);
+							result.append(caseName + " -> " + caseName + " : " + transition);
+							result.append("\n");
+							for (String methodCall : methodCalls) {
+								result.append("state " + caseName + " : " + methodCall + ";");
+								result.append("\n");
+							}
+						}
+						
+					}
+					methodCalls = new ArrayList<String>();
+					visibleStates.clear();
+					while(currentBlock.peek() != "case-state") currentBlock.pop(); 
+					currentBlock.pop();
+				}
+				
+				break;
+			case 10: //whileLoop
+				currentBlock.push("while-loop");
+			case 11: //methodDecleration
+				System.out.println("method decleration: " + line);
+				String methodDec = m.group(2);
+				System.out.println("adding method: " + methodDec);
+				if (!declaredMethods.contains(methodDec))
+					declaredMethods.add(methodDec);
+				
+				break;
+			case 12: //method decleration exception
+				System.out.println("method dec with exception: " + line );
+			    methodDec = m.group(2);
+				if (!declaredMethods.contains(methodDec)) {
+					declaredMethods.add(methodDec);
+					System.out.println("adding method: " + methodDec);
+				}
+				
+				break;
+			default: 
+				System.out.println("no match found");
+			}
+		
 	}
 	
 	private void initializePatterns() {
@@ -462,6 +749,7 @@ public class OSMGenerator {
 		addedTransitions = new ArrayList<String>();
 		currentBlock = new Stack<String>();
 		visibleStates = new Stack<String>();
+		savedVisibleStates = new Stack<String>();
 		result = new StringBuilder();
 		events = new Stack<String>();
 		ignoreStack = new Stack<String>();
