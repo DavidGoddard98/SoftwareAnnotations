@@ -1,8 +1,8 @@
 package net.sourceforge.plantuml.eclipse.views.actions;
 
-import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.dnd.ImageTransfer;
 import org.eclipse.swt.dnd.Transfer;
+import org.eclipse.swt.dnd.Clipboard;
 
 import net.sourceforge.plantuml.eclipse.utils.PlantumlConstants;
 import net.sourceforge.plantuml.eclipse.views.DiagramImageControl;

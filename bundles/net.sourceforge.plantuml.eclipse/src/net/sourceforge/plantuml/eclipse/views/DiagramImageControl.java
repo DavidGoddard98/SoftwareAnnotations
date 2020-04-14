@@ -1,4 +1,4 @@
-package net.sourceforge.plantuml.eclipse.views;
+	package net.sourceforge.plantuml.eclipse.views;
 
 import java.util.ArrayList;
 import java.util.Collection;

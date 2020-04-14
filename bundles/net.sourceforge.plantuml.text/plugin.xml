@@ -93,7 +93,14 @@
             diagramSuffix="@end_state_machine"
             >
       </textDiagramProvider>
-            	-
+      <textDiagramProvider
+            id="net.sourceforge.plantuml.text.autoGenerateOSMDiagramProvider"
+            label="Auto-GenerateState Machines diagrams in text editor"
+            diagramPrefix="@start_OSM_generation"
+            diagramSuffix="@end_OSM_generation"
+            >
+      </textDiagramProvider>
+            	
    </extension>
    
    <extension   

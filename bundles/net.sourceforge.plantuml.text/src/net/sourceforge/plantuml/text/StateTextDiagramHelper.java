@@ -25,6 +25,9 @@ import org.eclipse.jface.text.Region;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IFileEditorInput;
 
+import net.sourceforge.plantuml.text.StateReference;
+import net.sourceforge.plantuml.text.Transition;
+
 public class StateTextDiagramHelper  {
 	
 	//The strings used to declare the start and end of a stateMachine
@@ -52,43 +55,8 @@ public class StateTextDiagramHelper  {
 		
 	}
 	
-	//Stores relevant information about the latest diagram rendered. Is reinitialized each time the region containing the diagram descriptions
-	//is changed
-	class StateDiagram extends StateTextDiagramHelper {
-		protected HashMap<String, ArrayList<StateReference>> stateLinkers; //stores the information of all the descriptive lines including charStart, charEnd, linenums ect.
-		HashMap<String, ArrayList<StateReference>>transitionStateReferences; //filters the map above and only stores the information of states only referenced in transitions
-
-		protected HashMap<String, ArrayList<String>> textualDiagram; //a map of strings that will eventually make up the string sent to plantuml
-		protected ArrayList<String> addedTransitions; //a list of transitions already added - prevents duplicates occuring in diagram
-		protected ArrayList<String> actualStates; //states that are not only referenced in transitions..i.e 'State8 : a state'
-		
-		protected FindReplaceDocumentAdapter finder;
-		protected IDocument document;
-		protected IResource root;
-		protected IPath path;
-		protected Region lastRegion;
-		
-		protected String className;
-		protected int colorCounter; //used to progressively iterate through the above arrays.
-		
-		StateDiagram(FindReplaceDocumentAdapter finder, IDocument document, IResource root, IPath path) {
-			this.stateLinkers = new HashMap<String, ArrayList<StateReference>>();
-			this.transitionStateReferences  = new HashMap<String, ArrayList<StateReference>>();
-			this.textualDiagram = new HashMap<String, ArrayList<String>> (); 
-			this.addedTransitions =  new ArrayList<String>();
-			this.actualStates = new ArrayList<String>();
-			
-			
-			this.lastRegion = null;
-			this.finder = finder;
-			this.document = document;
-			this.root = root;
-			this.path = path;
-			
-			this.className = path.toFile().getName();
-			this.colorCounter = 0;
-		}
-	}
+	
+	
 	
 	
 	//This class is used to store various information about an '//FSM:' line in the editor and is only used
@@ -105,92 +73,6 @@ public class StateTextDiagramHelper  {
 			this.lineNum = lineNum;
 		}
 	}
-	
-	//Class used to store all state machine references in the editor such as their lineNum, charStart and end....
-	class StateReference extends StateTextDiagramHelper {
-		String theLine;
-		String editorLine;
-		int lineNum;
-		int charStart;
-		int charEnd;
-		boolean isTransition;
-		Transition transition;
-		
-		StateReference(String theLine, String editorLine, int lineNum, int charStart, int charEnd) {
-			this.theLine = theLine;
-			this.editorLine = editorLine;
-			this.lineNum = lineNum;
-			this.charStart = charStart;
-			this.charEnd = charEnd;
-			this.isTransition = false;
-		}
-		
-		StateReference(String theLine, String editorLine, int lineNum, Transition transition) {
-			this.theLine = theLine;
-			this.editorLine = editorLine;
-			this.lineNum = lineNum;
-			this.isTransition = true;
-			this.transition = transition;
-		}
-		
-		StateReference() {
-			
-		}
-		
-		public String toString() {
-			return this.theLine;
-		}
-	}
-	
-	//Used to store information about transitions such as the leftState name and the relevant char positions of everything in the transition
-	class Transition extends StateTextDiagramHelper {
-		String leftState;
-		int leftCharStart;
-		int leftCharEnd;
-	
-		String rightState;
-		int rightCharStart;
-		int rightCharEnd;
-		
-		int multiLineStart;
-		int multiLineEnd;
-		boolean multiLineTransition;
-		
-		Transition(String leftState, String rightState, int leftCharStart, int leftCharEnd, int rightCharStart, int rightCharEnd) {
-			this.leftState = leftState;
-			this.rightState = rightState;
-			this.leftCharStart = leftCharStart;
-			this.leftCharEnd = leftCharEnd;
-			this.rightCharStart = rightCharStart;
-			this.rightCharEnd = rightCharEnd;
-			this.multiLineTransition = false;
-		}
-		
-		Transition(String leftState, String rightState, int leftCharStart, int leftCharEnd, int rightCharStart, int rightCharEnd, int multiLineStart, int multiLineEnd) {
-			this.leftState = leftState;
-			this.rightState = rightState;
-			this.leftCharStart = leftCharStart;
-			this.leftCharEnd = leftCharEnd;
-			this.rightCharStart = rightCharStart;
-			this.rightCharEnd = rightCharEnd;
-			this.multiLineStart = multiLineStart;
-			this.multiLineEnd = multiLineEnd;
-			this.multiLineTransition = true;
-		}
-		
-		
-		Transition() {
-			
-		}
-		
-		public String toString() {
-			return this.leftState + " -> " + this.rightState;
-		}
-		
-		
-	}
-	
-	
 
 	/**
 	 * The only function that gets called from out of this class. Therefore the entry point.

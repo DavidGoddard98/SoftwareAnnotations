@@ -60,6 +60,15 @@ public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextPro
 		return stateTextDiagramHelper;
 	}
 	
+	private OSMGenerator osmGenerator = null;
+	
+	public OSMGenerator getOSMGenerator() {
+		if (osmGenerator == null) {
+			osmGenerator = new OSMGenerator();
+		}
+		return osmGenerator;
+	}
+	
 	//////////////////////////////////////////////////////////////////////////////
 
 	private TextDiagramHelper textDiagramHelper = null;
@@ -84,6 +93,8 @@ public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextPro
 		if (providerInfo.equals("net.sourceforge.plantuml.text.statemachineDiagramProvider")) { //user used @start_state_machine
 			return getStateTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes, editorInput);
 		////////////////////////////////////////////////////////////////////////
+		} else if (providerInfo.equals("net.sourceforge.plantuml.text.autoGenerateOSMDiagramProvider")) {
+			return getOSMGenerator().getDiagramTextLines(document, selectionStart, markerAttributes, editorInput);
 		} else
 			return getTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes);
 	}
