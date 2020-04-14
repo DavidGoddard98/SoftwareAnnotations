@@ -34,8 +34,9 @@ public class OSMGenerator {
 	private boolean patternsInitialized = false;
 	private PatternIdentifier patternIdentifier;
 	
-	Pattern ifGuard = Pattern.compile( 	"(if|\\}*else\\sif)\\s*\\(\\s*([a-zA-Z0-9=><*\\+\\-\\s]*)\\s*\\)\\s*(\\{)*\\s*([//]{2,}\\s*(.)*)*");
     Pattern goodIfGuard = Pattern.compile("(if|\\}?\\s*else\\sif)\\s*\\(\\s*([a-zA-Z0-9\\s\\[\\];|&.,()!=_\\-<>+*]*)\\s*\\)\\s*(\\{?)\\s*([//]{2,}\\s*(.)*)*");
+    Pattern stateEqualityGuard = Pattern.compile( "(if|\\}?\\s*else\\sif)\\s*\\(\\s*(state)\\s+\\=\\=\\s+(valid_states\\.)([a-zA-Z0-9\\s\\[\\];|&\\.,()!=_\\-<>+*]*)\\s*\\)\\s*(\\{?)\\s*([//]{2,}\\s*(.)*)*");
+    Pattern stateInequalityGuard = Pattern.compile( "(if|\\}?\\s*else\\sif)\\s*\\(\\s*(state)\\s+\\!\\=\\s+(valid_states\\.)([a-zA-Z0-9\\s\\[\\];|&\\.,()!=_\\-<>+*]*)\\s*\\)\\s*(\\{?)\\s*([//]{2,}\\s*(.)*)*");
     //SAME LINE IF CONDITIONALS?
 
     Pattern switchState = Pattern.compile("(switch)\\s*\\(\\s*(state)\\s*\\)\\s*\\{*([//]{2,}\\s*(.)*)*"); //switch(state) {
@@ -55,7 +56,7 @@ public class OSMGenerator {
     Pattern whitespace = Pattern.compile("\\s*");
 
     Pattern methodDecleration = Pattern.compile("(public|protected|private|static|\\s) +[\\w\\<\\>\\[\\]]+\\s+(\\w+) *\\([^\\)]*\\) *(\\{?|[^;])([//]{2,}\\s*(.)*)*");
-    Pattern methodDeclerationException = Pattern.compile("(public|protected|private|static|\\s) +[\\w\\<\\>\\[\\]]+\\s+(\\w+) *\\([^\\)]*\\) [\\w]*\\s[\\w]* *(\\{?|[^;])([//]{2,}\\s*(.)*)*");
+    Pattern methodDeclerationException = Pattern.compile("(public|protected|private|static|\\s+) +[\\w\\<\\>\\[\\]]+\\s+(\\w+) *\\([^\\)]*\\)\\s+[\\w]*\\s+[\\w]* *(\\{?|[^;])([//]{2,}\\s*(.)*)*");
 	
     Pattern whileLoop = Pattern.compile("while\\s*\\(([\\._\\-a-zA-Z0-9]*)\\)\\s*\\{*\\s*([//]{2,}\\s*(.)*)*"); //while (x) {
     
@@ -113,7 +114,10 @@ public class OSMGenerator {
 	StringBuilder result;
 	ArrayList<String> addedTransitions;
 	ArrayList<String> storedEvents;
-	
+	ArrayList<String> methodCalls;
+	ArrayList<String> declaredMethods;
+	ArrayList<String> exitConditions;
+
 	Stack<String> currentBlock;
 	Stack<String> events;
 	Stack<String> visibleStates;
@@ -148,14 +152,14 @@ public class OSMGenerator {
 			} else
 				return;
 		}
-		System.out.println("STORED EVENTS .SIZE: " + storedEvents.size());
-		System.out.println("VISIBLE STATES .SIZE" + visibleStates.size());
+//		System.out.println("STORED EVENTS .SIZE: " + storedEvents.size());
+//		System.out.println("VISIBLE STATES .SIZE" + visibleStates.size());
 		
 		for (RegexInfo info : patternIdentifier.patternStore) {
 			Matcher m = info.pattern.matcher(line);
 			if (m.matches()) {
-				System.out.println("VISIBLE STATES .SIZE" + visibleStates.size());
-				System.out.println(lastState);
+//				System.out.println("VISIBLE STATES .SIZE" + visibleStates.size());
+//				System.out.println(lastState);
 				switch(info.identifier) {
 				
 				case 0: //call back...
@@ -171,9 +175,56 @@ public class OSMGenerator {
 					break;
 				case 1: //complex if guard
 					 System.out.println("good if guard " + line + "statement: " + m.group(2)) ;
-					currentBlock.push("conditional");
-					events.push(m.group(2)); //the condition
+					 String expression = m.group(2);
 					
+					 if (!expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "").equals(expression)) {
+						 boolean equalityStatesFound = false;
+						 System.out.println("here");
+						 String aString = expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "equality");
+						 //STOP SELF LOOPING
+					   	 while (!equalityStatesFound) {
+					   		 
+					         if (aString.indexOf("equality") != -1) {
+					        	 
+
+					             int index = aString.indexOf("equality");
+					        	 int anotherIndex = aString.indexOf(" ", index);
+					        	 if (anotherIndex == -1) anotherIndex = aString.length();
+					        	 String aState = aString.substring(index + 8, anotherIndex);
+					        	 if (aState.equals("")) break;
+					        	 System.out.println("pushing this state onto visible states : " + aState);
+					        	 visibleStates.push(aState.trim());
+					        	 aString = aString.substring(aString.indexOf(aState));
+					         } else equalityStatesFound = true;
+					   	 }
+						
+					 }
+							//equality state conditional
+//					 } else if (!anotherExpression.replaceAll("(state)\\s+\\!=\\=\\s+(valid_states\\.)", "inEquality").equals(anotherExpression)) {
+//						
+//						 boolean inEqualityStatesFound = false;
+//
+//						 
+//					   	 while (!inEqualityStatesFound) {
+//					   		 
+//					         if (anotherExpression.indexOf("inEquality") != -1) {
+//					        	 
+//
+//					             int index = anotherExpression.indexOf("inEquality");
+//					        	 int anotherIndex = anotherExpression.indexOf(" ", index);
+//					        	 if (anotherIndex == -1) anotherIndex = anotherExpression.length();
+//					        	 String aState = anotherExpression.substring(index + 8, anotherIndex);
+//					        	 visibleStates.push(aState.trim());
+//					        	 anotherExpression = anotherExpression.substring(anotherExpression.indexOf(aState));
+//					         } else inEqualityStatesFound = true;
+//					   	 }
+							
+					
+					 
+					 
+					 currentBlock.push("conditional");
+					 events.push(m.group(2)); //the condition
+				 
 					
 					break;
 				case 2: //switch state
@@ -248,8 +299,25 @@ public class OSMGenerator {
 					
 					break;
 				case 6: //simpleMethodCal
-					System.out.println("simple method call: " + line + "method: " + m.group(1));
+					int index = m.group(1).indexOf("(");
+					String method = m.group(1).substring(0, index);
+					System.out.println(method);
+					if (declaredMethods.contains(method) && !methodCalls.contains(m.group(1))){
+						methodCalls.add(m.group(1));
+						System.out.println("addding :" + m.group(1));
+					}
+					if (exitConditions!= null && exitConditions.contains(m.group(1))) {
+						System.out.println("exit conditions contains methiod");
+						storedEvents.add(m.group(1));
+						for (String visibleState : visibleStates) {
+							result.append(visibleState + " -down-> " + "[*] : " + m.group(1));
+							result.append("\n");
+						}
+					}
 					
+				
+					
+					System.out.println("simple method call: " + line + "method: " + m.group(1));
 					break;
 				case 7: //complexMethodcall
 					System.out.println("complex method call: " + line + "method: " + m.group(3));
@@ -288,16 +356,28 @@ public class OSMGenerator {
 					
 					} else if (currentBlock.peek() == "case-state") {
 						if (currentBlock.contains("while-loop") && !caseName.equals("INIT")) {
+							boolean selfLoop = true;
 							transition = new StringBuilder();
 							for (int j =0; j<storedEvents.size(); j++) {
+								if (exitConditions.contains(storedEvents.get(j))) { //exit state no self loop
+									selfLoop = false;
+								}
 								transition.append(storedEvents.get(j));
 								if (j != storedEvents.size() -1) transition.append(" && ");
 							}
-							if (transition.length() == 0) transition.append("No event found");
-							System.out.println("here :" + caseName);
-							result.append(caseName + " -> " + caseName + " : " + transition);
-							result.append("\n");
+							if (selfLoop) {
+								if (transition.length() == 0) transition.append("No event found");
+								System.out.println("here :" + caseName);
+								result.append(caseName + " -> " + caseName + " : " + transition);
+								result.append("\n");
+								for (String methodCall : methodCalls) {
+									result.append("state " + caseName + " : " + methodCall + ";");
+									result.append("\n");
+								}
+							}
+							
 						}
+						methodCalls = new ArrayList<String>();
 						visibleStates.clear();
 						while(currentBlock.peek() != "case-state") currentBlock.pop(); 
 						currentBlock.pop();
@@ -308,10 +388,19 @@ public class OSMGenerator {
 					currentBlock.push("while-loop");
 				case 11: //methodDecleration
 					System.out.println("method decleration: " + line);
+					String methodDec = m.group(2);
+					System.out.println("adding method: " + methodDec);
+					if (!declaredMethods.contains(methodDec))
+						declaredMethods.add(methodDec);
 					
 					break;
 				case 12: //method decleration exception
-					System.out.println("method dec with exception: " + line);
+					System.out.println("method dec with exception: " + line );
+				    methodDec = m.group(2);
+					if (!declaredMethods.contains(methodDec)) {
+						declaredMethods.add(methodDec);
+						System.out.println("adding method: " + methodDec);
+					}
 					
 					break;
 				default: 
@@ -319,11 +408,19 @@ public class OSMGenerator {
 				}
 			} else if (m.find() && info.identifier == 13) { //fsm comment
 				System.out.println("fsm comment " + line);
-				result.append(line.substring(6));
-				result.append("\n");
+				String removeFSM = line.substring(6);
+				if (removeFSM.contains("EXIT")) {
+					removeFSM = removeFSM.replaceAll("\\s*(EXIT)\\s*-\\s*", "");
+					System.out.println(removeFSM);
+					exitConditions = new ArrayList<String>(Arrays.asList(removeFSM.split("/")));
+					System.out.println(exitConditions.get(0));
+				} else {
+					result.append(line.substring(6));
+					result.append("\n");
+				}
+				
 			}
 		}
-		
 	}
 	
 	private void initializePatterns() {
@@ -371,6 +468,8 @@ public class OSMGenerator {
 		storedEvents = new ArrayList<String>();
 		lastState = null;
 		caseName = null;
+		declaredMethods = new ArrayList<String>();
+		methodCalls = new ArrayList<String>();
 		//Initialize pattern store
 		if(!patternsInitialized) {
 			initializePatterns();
