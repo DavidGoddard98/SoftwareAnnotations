@@ -25,6 +25,7 @@ import org.eclipse.ui.IFileEditorInput;
 
 import net.sourceforge.plantuml.text.PatternIdentifier.RegexInfo;
 import net.sourceforge.plantuml.text.StateTextDiagramHelper.PendingState;
+import net.sourceforge.plantuml.text.StateTree.Routes;
 
 public class OSMGenerator {
 	
@@ -112,21 +113,25 @@ public class OSMGenerator {
  	}
 	
 	
-	ArrayList<String> addedTransitions;
 	ArrayList<String> storedEvents;
 	ArrayList<String> methodCalls;
 	ArrayList<String> declaredMethods;
 	ArrayList<String> exitConditions;
-
+	ArrayList<String> invisibleNodes;
 	Stack<String> currentBlock;
 	Stack<String> events;
-	Stack<String> visibleStates;
-	Stack<String> savedVisibleStates;
+	Stack<Node> visibleStates;
+	
+	Stack<String> stateFound;
 	Stack<String> ignoreStack;
 	
-	String lastState = null;
+	String initialState = null;
 	String caseName = null;
 	StringBuilder result;
+	StateTree theTree;
+	StateStore stateStore = null;
+	StateStore unconditionalState = null;
+	StringBuilder transition;
 	//conditional
 	//switch-state
 	//case-state
@@ -135,6 +140,7 @@ public class OSMGenerator {
 	boolean ignore = false;
 	boolean stopIgnoring = false;
 	boolean switchStateActive = false;
+	boolean unConditionalState = false;
 	
 	
 	
@@ -165,7 +171,7 @@ public class OSMGenerator {
 		viz.append("VISIBLE STATES;");
 		viz.append("\n");
 
-		for (String visibleState : visibleStates) {
+		for (Node visibleState : visibleStates) {
 			viz.append(visibleState + " ; "); 
 		}
 		viz.append("\n");
@@ -190,8 +196,11 @@ public class OSMGenerator {
 			viz.append(storedEvent + " ; "); 
 		}
 		viz.append("\n");
-		System.out.println(viz);
+		viz.append("\n");
+		viz.append("STATESFOUND;");
+		viz.append("\n");
 
+		
 		
 		for (RegexInfo info : patternIdentifier.patternStore) {
 			Matcher m = info.pattern.matcher(line);
@@ -228,12 +237,7 @@ public class OSMGenerator {
 				//remove obvious once that arnt there.
 				System.out.println("found a callback: " + line);
 				if (line.contains("Systen.out.print")) break;
-				if (!visibleStates.contains(lastState) && lastState != null) {
-					System.out.println(lastState);
-					visibleStates.push(lastState);
-					events.push("call-back");
-					
-				}
+				callBack = true;
 				break;
 			case 1: //complex if guard
 				 System.out.println("good if guard " + line + "statement: " + m.group(2)) ;				 
@@ -249,12 +253,12 @@ public class OSMGenerator {
 			case 3: //state change
 				System.out.println("state Change: " + line + "the State: " + m.group(4));
 				StringBuilder transition = new StringBuilder();
-	
-				if (lastState == null) {
-					lastState = m.group(4);
-					result.append("state " + lastState);
-					result.append("\n");
-				} 
+//	
+//				if (lastState == null) {
+//					lastState = m.group(4);
+//					result.append("state " + lastState);
+//					result.append("\n");
+//				} 
 				
 				if (currentBlock.size() > 1 && currentBlock.peek() == "conditional" && currentBlock.get(currentBlock.size()-2) != "conditional")
 					storedEvents.add(negateCondition(events.peek()));
@@ -276,7 +280,7 @@ public class OSMGenerator {
 						result.append(visibleStates.peek() + " -down-> " + m.group(4) + " : " + transition);
 						result.append("\n");
 					} else {
-						for (String visibleState: visibleStates) {
+						for (Node visibleState: visibleStates) {
 							System.out.println("appending transition " + visibleState + " -down-> " + m.group(4) + " : " + transition);
 							result.append(visibleState + " -down-> " + m.group(4) + " : " + transition);
 							result.append("\n");
@@ -288,7 +292,7 @@ public class OSMGenerator {
 				}
 				callBack = false;
 	
-				lastState = m.group(4);
+				//lastState = m.group(4);
 	
 				
 	
@@ -335,7 +339,7 @@ public class OSMGenerator {
 				if (exitConditions!= null && exitConditions.contains(m.group(1))) {
 					System.out.println("exit conditions contains methiod");
 					storedEvents.add(m.group(1));
-					for (String visibleState : visibleStates) {
+					for (Node visibleState : visibleStates) {
 						result.append(visibleState + " -down-> " + "[*] : " + m.group(1));
 						result.append("\n");
 					}
@@ -354,15 +358,15 @@ public class OSMGenerator {
 				visibleStates.clear();
 				currentBlock.push("case-state"); //we know that the case is a state...
 				storedEvents.clear();
-				if (m.group(2).equals("INIT")) {
-					visibleStates.push("[*]");
-				}
-				else {
-					visibleStates.push(m.group(2));
-					result.append("state " + m.group(2));
-					result.append("\n");
-					lastState = m.group(2);
-				}
+//				if (m.group(2).equals("INIT")) {
+//					visibleStates.push("[*]");
+//				}
+//				else {
+//					visibleStates.push(m.group(2));
+//					result.append("state " + m.group(2));
+//					result.append("\n");
+//					lastState = m.group(2);
+//				}
 				caseName = m.group(2);
 
 				System.out.println("caseState: " + line + "the stateName: " + m.group(2));
@@ -433,6 +437,94 @@ public class OSMGenerator {
 	
 	}
 	
+	private StringBuilder buildTransitionsFromTree(StateTree theTree, boolean lastTree) {
+		ArrayList<Node> nodes = new ArrayList<Node>();
+		StringBuilder result = new StringBuilder();
+		String saveTrans = "";
+		nodes = theTree.nodes;
+		for (int j = 0; j<visibleStates.size(); j++) {
+			
+			Node from = visibleStates.get(j);
+			nodes.remove(from);
+			
+			for (int i = 0 ; i<nodes.size(); i++) {
+				
+				Node to = nodes.get(i);
+				if (to.index < from.index) continue;
+				
+				Routes route = theTree.getRoute(from, to);
+				if (route == null) continue;
+				
+				StringBuilder transition = new StringBuilder();
+
+				for (Node node : route.route ) {
+					if (node.event.isEmpty()) continue;
+					transition.append(node.event + " && ");
+				}
+				
+				for (Node node : route.metStates) {
+					if (node.event.isEmpty()) continue;
+					transition.append(negateCondition(node.event) + " && ");
+				}
+				
+				if (transition.length() > 3)
+				transition.delete(transition.length()-3, transition.length());
+				if (transition.length() == 0) transition.append("No event found");
+				if (from.equals(theTree.root)) saveTrans = transition.toString();
+			
+				
+
+				result.append(from.stateName + " -down-> " + to.stateName + " : " + transition + "\n"); 
+				
+			}
+		}
+		if (lastTree) {
+			
+			for (String invisibleNode : invisibleNodes) {
+				result.append(invisibleNode + " -down-> [*] : " + saveTrans + "\n" );
+			}
+			
+			Node exitNode = theTree.getNode("[*]");
+			
+			for (Node invisibleNode : theTree.nodes) {
+				
+				if (invisibleNode.visible) continue;
+				Routes route = theTree.getRoute(invisibleNode, exitNode);
+				
+				StringBuilder transition = new StringBuilder();
+	
+				for (Node node : route.route ) {
+					if (node.event.isEmpty()) continue;
+					transition.append(node.event + " && ");
+				}
+				
+				for (Node node : route.metStates) {
+					if (node.event.isEmpty()) continue;
+					transition.append(negateCondition(node.event) + " && ");
+				}
+				if (transition.length() > 3)
+				transition.delete(transition.length()-3, transition.length());
+				if (transition.length() == 0) transition.append("No event found");
+	
+			
+				
+	
+				result.append(invisibleNode.stateName + " -down-> [*] : " + transition + "\n"); 
+				
+			}
+		}
+		return result;
+	}
+	
+	private void addBackLogNode() {
+		if (stateStore != null) {
+			Node node = new Node(stateStore.name,stateStore.parent, stateStore.event, callBack);
+			theTree.addNode(stateStore.parent, node);
+			if (callBack) visibleStates.push(node);
+		}
+		callBack = false;
+	}
+	
 	private void normalFlow(int patternNo, String line, int lineNum, Matcher m) {
 		switch(patternNo) {
 
@@ -440,12 +532,9 @@ public class OSMGenerator {
 				//remove obvious once that arnt there.
 				System.out.println("found a callback: " + line);
 				if (line.contains("Systen.out.print")) break;
-				if (!visibleStates.contains(lastState) && lastState != null) {
-					System.out.println(lastState);
-					visibleStates.push(lastState);
-					events.push("call-back");
-					
-				}
+				callBack=true;
+				
+				
 				break;
 			case 1: //complex if guard
 				 System.out.println("good if guard " + line + "statement: " + m.group(2)) ;
@@ -454,8 +543,7 @@ public class OSMGenerator {
 				 if (!expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "").equals(expression)) {
 					 currentBlock.push("conditional-state");
 					 events.push(m.group(2)); //the condition
-					 savedVisibleStates = visibleStates;
-					 visibleStates = new Stack<String>();
+					 visibleStates = new Stack<Node>();
 					 boolean equalityStatesFound = false;
 					 System.out.println("here");
 					 String aString = expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "equality");
@@ -471,7 +559,7 @@ public class OSMGenerator {
 				        	 String aState = aString.substring(index + 8, anotherIndex);
 				        	 if (aState.equals("")) break;
 				        	 System.out.println("pushing this state onto visible states : " + aState);
-				        	 visibleStates.push(aState.trim());
+				        	// visibleStates.push(aState.trim());
 				        	 aString = aString.substring(aString.indexOf(aState));
 				         } else equalityStatesFound = true;
 				   	 }
@@ -516,77 +604,108 @@ public class OSMGenerator {
 				return;
 			case 3: //state change
 				System.out.println("state Change: " + line + "the State: " + m.group(4));
-				StringBuilder transition = new StringBuilder();
 		
-				if (lastState == null) {
+				if (initialState == null) {
 					
-					lastState = m.group(4);
-					result.append("state " + lastState);
+					initialState = m.group(4);
+					Node node = new Node(initialState, null, "", true);
+					theTree = new StateTree(node);
+					stateFound.push(initialState);
+					visibleStates.push(node);
+					result.append("[*] -> " + initialState);
 					result.append("\n");
-					visibleStates.push(lastState);
-					result.append("[*] -> " + lastState);
-					result.append("\n");
+		
 					break;
 				} 
 				
-				if (currentBlock.size() > 1 && currentBlock.peek() == "conditional" && currentBlock.get(currentBlock.size()-2) != "conditional")
-					storedEvents.add(negateCondition(events.peek()));
-				if (!visibleStates.isEmpty()) {
-					for (int j=events.size()-1; j>=0; j--) {
-						if (events.get(j).equals("call-back")) {
-							System.out.println("callback = true");
-							callBack =true;
-							break;
-						
-						} 
-						transition.append(events.get(j));
-						if (j>0) transition.append("; ");
-		
-					}	
-					if (transition.length() == 0) transition.append("No event found");
+				if (unConditionalState) {
+					//IF THIS IS VISIBLE
 					if (callBack) {
-						System.out.println("appending transition " + visibleStates.peek() + " -down-> " + m.group(4) + " : " + transition);
-						result.append(visibleStates.peek() + " -down-> " + m.group(4) + " : " + transition);
-						result.append("\n");
-					} else {
-						for (String visibleState: visibleStates) {
-							System.out.println("appending transition " + visibleState + " -down-> " + m.group(4) + " : " + transition);
-							result.append(visibleState + " -down-> " + m.group(4) + " : " + transition);
-							result.append("\n");
-		
-						}
+						//AS END OF OLD TREE
+						//Loop through all states and add them as a parent
+						for (Node invisibleNode : theTree.nodes)
+							if (!invisibleNode.visible) invisibleNodes.add(invisibleNode.stateName);
+						Node node = new Node(unconditionalState.name, theTree.root, "", true);
+
+						theTree.addNode(theTree.root, node);
+						result.append(buildTransitionsFromTree(theTree, false));
+						//AS ROOT FOR NEW TREE
+						node = new Node(unconditionalState.name, null, "", true);
+						visibleStates.clear();
+						stateFound.clear();
+						theTree = new StateTree(node);
+						visibleStates.push(node);
+						Node parentNode = node;
+						if (!events.empty())  stateStore = new StateStore(m.group(4), events.peek(), parentNode);
+						else stateStore = new StateStore(m.group(4), "", parentNode);
+						stateFound.push(m.group(4));
+						unConditionalState = false;
+						callBack = false;
+						break;
 					}
-					
-					
+					//IF INVISIBLE
+					//Add as child to all other nodes with empty transition? - not sure
+					//ignoring if that uncodnital state isnt visible atm...
+					stateFound.pop();
+					unConditionalState = false;
+				} else {
+					addBackLogNode();
+
 				}
-				callBack = false;
-		
-				lastState = m.group(4);
-		
 				
+				if (!visibleStates.isEmpty()) {
+					 if (currentBlock.empty()) {
+						unConditionalState = true;
+						
+						unconditionalState = new StateStore(m.group(4), "", null);
+						stateFound.push(m.group(4));
+	
+					
+					}else if (currentBlock.peek().equals("conditional")) { 
+						currentBlock.pop(); //we know the conditional is for a state 
+						currentBlock.push("state-conditional"); //therefore speicify this
+						
+						Node parentNode = theTree.getNode(stateFound.peek());
+						stateStore = new StateStore(m.group(4), events.peek(), parentNode);
+						stateFound.push(m.group(4));
 		
-				
+
+					} else if (currentBlock.peek().equals("state-conditional")) {
+						
+						Node parentNode = theTree.getNode(stateFound.peek());
+						stateStore  = new StateStore(m.group(4), "", parentNode);
+						stateFound.push(m.group(4));
+					}
+						
+					
+
+							
+				}
+		
 				break;
 			case 4: //closed }
 				
 				if (!currentBlock.isEmpty()) {
 					if (currentBlock.peek().equals("conditional-state")) {
-						visibleStates = savedVisibleStates;
+//						visibleStates = savedVisibleStates;
+						currentBlock.pop();
+					} else if (currentBlock.peek().equals("state-conditional")) {
+						stateFound.pop();
 						currentBlock.pop();
 					} else {
 						currentBlock.pop();
+						
+
+						
 
 					}
 				}
 				
+				
+				
 				if (!events.isEmpty()) {
-					if (events.size() >1 && events.peek() == "call-back") {
-						events.pop();
-						events.pop();
-					} else {
-						events.pop();
-					}
-			
+					events.pop();
+					
 				}
 				
 				
@@ -598,17 +717,15 @@ public class OSMGenerator {
 			case 6: //simpleMethodCal
 				int index = m.group(1).indexOf("(");
 				String method = m.group(1).substring(0, index);
-				System.out.println(method);
 				if (declaredMethods.contains(method) && !methodCalls.contains(m.group(1))){
 					methodCalls.add(m.group(1));
 					System.out.println("addding :" + m.group(1));
 				}
 				if (exitConditions!= null && exitConditions.contains(m.group(1))) {
-					System.out.println("exit conditions contains methiod");
 					storedEvents.add(m.group(1));
 						
 				
-					for (String visibleState : visibleStates) {
+					for (Node visibleState : visibleStates) {
 						result.append(visibleState + " -down-> " + "[*] : " + m.group(1));
 						result.append("\n");
 					}
@@ -626,21 +743,22 @@ public class OSMGenerator {
 				break;
 			case 8: //case 
 				if (currentBlock.contains("switch-state")) {
-					visibleStates.clear();
-					currentBlock.push("case-state"); //we know that the case is a state...
-					storedEvents.clear();
-					if (m.group(2).equals("INIT")) {
-						visibleStates.push("[*]");
-					}
-					else {
-						visibleStates.push(m.group(2));
-						result.append("state " + m.group(2));
-						result.append("\n");
-						lastState = m.group(2);
-					}
-					caseName = m.group(2);
-		
-					
+//				/*	visibleStates.clear();
+//					currentBlock.push("case-state"); //we know that the case is a state...
+//					storedEvents.clear();
+//					if (m.group(2).equals("INIT")) {
+//						visibleStates.push("[*]");
+//					}
+//					else {
+//						visibleStates.push(m.group(2));
+//						result.append("state " + m.group(2));
+//						result.append("\n");
+//						lastState = m.group(2);
+//					}
+//					caseName = m.group(2);
+//		
+//					
+//				}
 				}
 					
 				System.out.println("caseState: " + line + "the stateName: " + m.group(2));
@@ -708,6 +826,7 @@ public class OSMGenerator {
 				System.out.println("no match found");
 			}
 		
+		
 	}
 	
 	private void initializePatterns() {
@@ -745,19 +864,27 @@ public class OSMGenerator {
 		
 
 		
+		callBack = false;
+
 		
-		addedTransitions = new ArrayList<String>();
+		
+		
+		
+		stateStore = null;
 		currentBlock = new Stack<String>();
-		visibleStates = new Stack<String>();
-		savedVisibleStates = new Stack<String>();
+		visibleStates = new Stack<Node>();
+		stateFound = new Stack<String>();
+		unconditionalState = null;
 		result = new StringBuilder();
 		events = new Stack<String>();
 		ignoreStack = new Stack<String>();
 		storedEvents = new ArrayList<String>();
-		lastState = null;
+		initialState = null;
 		caseName = null;
 		declaredMethods = new ArrayList<String>();
 		methodCalls = new ArrayList<String>();
+		invisibleNodes = new ArrayList<String>();
+		unConditionalState = false;
 		//Initialize pattern store
 		if(!patternsInitialized) {
 			initializePatterns();
@@ -798,6 +925,14 @@ public class OSMGenerator {
 						identifyPattern(line, lineNum);
 					}
 					
+					addBackLogNode();
+					Node node = new Node("[*]", theTree.root, "", true);
+
+					theTree.addNode(theTree.root, node);
+					result.append(buildTransitionsFromTree(theTree, true));
+					
+
+
 					
 					
 				}
