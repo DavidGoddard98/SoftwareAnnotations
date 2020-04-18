@@ -1,5 +1,10 @@
 package net.sourceforge.plantuml.text;
 
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+
+import net.sourceforge.plantuml.text.StateTree.Routes;
+
 public class StateStore {
 	
 	public String name;

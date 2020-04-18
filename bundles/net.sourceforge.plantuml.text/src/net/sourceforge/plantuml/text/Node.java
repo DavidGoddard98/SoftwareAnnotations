@@ -59,7 +59,7 @@ public class Node {
 	}
 
 	public String toString() {
-		  return "StateName: " + this.stateName + " Index: " + this.index + " Event: " + this.event + " Visibility: " + this.visible;
+		  return "StateName: " + this.stateName + " Index: " + this.index + " Event: " + this.event + " Visibility: " + this.visible + "\n" + "Parent: " + this.parent; 
 	  }
   
 	  

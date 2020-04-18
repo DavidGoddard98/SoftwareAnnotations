@@ -1,6 +1,7 @@
 package net.sourceforge.plantuml.text;
 
 import net.sourceforge.plantuml.text.StateTree;
+import net.sourceforge.plantuml.text.StateTree.Routes;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,7 +13,125 @@ import net.sourceforge.plantuml.text.Node;
 public class Test {
 	
 	  
+	public Routes getRoute(Node from, Node to) {
+		  
+		System.out.println();
+		int indexOfFrom = from.index;
+		int indexOfTo = to.index;
+		Stack<Node> route = new Stack<Node>();
+		route.push(to);
+		ArrayList<Node> nodesMet = new ArrayList<Node>();
+		Node parent = to.parent;
+		System.out.println(parent);
+		boolean visible = to.visible;
+		if (!visible) nodesMet.addAll(getChildren(to));
+		
+		boolean nodeIsRoot = false;
+		
+		while (!nodeIsRoot) {
+			
+			if (parent.equals(from)) {
+				route.push(parent);
+				for (Node node : getChildren(parent)) {
+					if (visible) {
+						if (node.index < indexOfTo && node.visible) {
+							nodesMet.add(node);
+						} 
+					} else {
+					
+						if (node.index != indexOfTo && !route.contains(node))
+							nodesMet.add(node);
+					}
+					 
+					
+				}
+				while (!parent.equals(root)) {
+					parent = parent.parent;
+					if (!visible) {
+						for (Node node : getChildren(parent)) {
 
+							if (node.index != indexOfTo && node.index >indexOfFrom && !route.contains(node))
+								nodesMet.add(node);
+							
+						}
+					}
+				}
+				break;
+			}
+			else {
+				for (Node node : getChildren(parent)) {
+					if (visible) {
+						if (node.index < indexOfTo && node.index > indexOfFrom && node.visible) {
+							nodesMet.add(node);
+						}
+					} else {
+						if (node.index != indexOfTo && node.index > indexOfFrom && !route.contains(node) )
+							nodesMet.add(node);
+	
+					}
+				}
+			}
+			if (parent.visible && !parent.equals(root) && !(indexOfFrom > parent.index)) {
+				route = new Stack<Node>();
+				nodesMet = new ArrayList<Node>();
+				
+				if (parent.equals(root)) {
+					route.add(to);
+				} else route.add(parent);
+				return null;
+			}
+			route.add(parent);
+			if (parent.equals(root)) {
+				nodeIsRoot = true;
+			} else {
+				parent = parent.parent;
+			}
+
+		}
+		
+		if (route.contains(from)) {
+			route.remove(from);
+		}
+		else if (!from.equals(root)) { //if null parent is root so route = route.
+			nodeIsRoot = false;
+			for (Node child : getChildren(from)) {
+//				if (child.index > indexOfFrom && child.event.equals("unconditional")) return null;
+			}
+			parent = from.parent;
+			nodesMet.addAll(getChildren(from));
+			while (!nodeIsRoot) {
+				
+				if (route.contains(parent)) {
+					route.remove(parent);
+					
+					break;
+				} else {
+					for (Node node : getChildren(parent)) {
+//						if (node.index > indexOfFrom && node.event.equals("unconditional")) return null;
+
+						if (visible) {
+							if (node.index > indexOfFrom && node.index < indexOfTo && node.visible) {
+								nodesMet.add(node);
+
+							}
+						
+						} else {
+	 						if (node.index > indexOfFrom)
+								nodesMet.add(node);
+
+						}
+					
+					}
+											
+				}
+				if (parent.equals(root)) {
+					nodeIsRoot = true;
+				} else {
+					parent = parent.parent;
+				}
+
+			}
+		}
 	
 	 
     public static void main(String[] args) {

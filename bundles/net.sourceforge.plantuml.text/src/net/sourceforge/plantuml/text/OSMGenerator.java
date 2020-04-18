@@ -25,7 +25,7 @@ import org.eclipse.ui.IFileEditorInput;
 
 import net.sourceforge.plantuml.text.PatternIdentifier.RegexInfo;
 import net.sourceforge.plantuml.text.StateTextDiagramHelper.PendingState;
-import net.sourceforge.plantuml.text.StateTree.Routes;
+import net.sourceforge.plantuml.text.StateTree.TransitionInformation;
 
 public class OSMGenerator {
 	
@@ -141,6 +141,7 @@ public class OSMGenerator {
 	boolean stopIgnoring = false;
 	boolean switchStateActive = false;
 	boolean unConditionalState = false;
+	boolean drawTree = false;
 	
 	
 	
@@ -252,73 +253,115 @@ public class OSMGenerator {
 				break;
 			case 3: //state change
 				System.out.println("state Change: " + line + "the State: " + m.group(4));
-				StringBuilder transition = new StringBuilder();
-//	
-//				if (lastState == null) {
-//					lastState = m.group(4);
-//					result.append("state " + lastState);
-//					result.append("\n");
-//				} 
+				if (initialState == null) {
+					
+					initialState = m.group(4);
+					Node node = new Node(initialState, null, "", true);
+					theTree = new StateTree(node);
+					stateFound.push(initialState);
+					visibleStates.push(node);
+					result.append("[*] -> " + initialState);
+					result.append("\n");
+		
+					break;
+				} 
 				
-				if (currentBlock.size() > 1 && currentBlock.peek() == "conditional" && currentBlock.get(currentBlock.size()-2) != "conditional")
-					storedEvents.add(negateCondition(events.peek()));
-				if (!visibleStates.isEmpty()) {
-					for (int j=events.size()-1; j>=0; j--) {
-						if (events.get(j).equals("call-back")) {
-							System.out.println("callback = true");
-							callBack =true;
-							break;
-						
-						} 
-						transition.append(events.get(j));
-						if (j>0) transition.append("; ");
-	
-					}	
-					if (transition.length() == 0) transition.append("No event found");
+
+				if (unConditionalState) {
+					//IF THIS IS VISIBLE
 					if (callBack) {
-						System.out.println("appending transition " + visibleStates.peek() + " -down-> " + m.group(4) + " : " + transition);
-						result.append(visibleStates.peek() + " -down-> " + m.group(4) + " : " + transition);
-						result.append("\n");
-					} else {
-						for (Node visibleState: visibleStates) {
-							System.out.println("appending transition " + visibleState + " -down-> " + m.group(4) + " : " + transition);
-							result.append(visibleState + " -down-> " + m.group(4) + " : " + transition);
-							result.append("\n");
-	
-						}
+						//AS END OF OLD TREE
+						//Loop through all states and add them as a parent
+						for (Node invisibleNode : theTree.nodes)
+							if (!invisibleNode.visible) invisibleNodes.add(invisibleNode.stateName);
+						Node node = new Node(unconditionalState.name, theTree.root, "unconditional", true);
+
+						theTree.addNode(theTree.root, node);
+						result.append(buildTransitionsFromTree(theTree, false));
+						//AS ROOT FOR NEW TREE
+						node = new Node(unconditionalState.name, null, "", true);
+						visibleStates.clear();
+						stateFound.clear();
+						theTree = new StateTree(node);
+						visibleStates.push(node);
+						Node parentNode = node;
+						if (!events.empty())  stateStore = new StateStore(m.group(4), events.peek(), parentNode);
+						else stateStore = new StateStore(m.group(4), "", parentNode);
+						stateFound.push(m.group(4));
+						unConditionalState = false;
+						callBack = false;
+						break;
 					}
-					
-					
+					//IF INVISIBLE
+					//Add as child to all other nodes with empty transition? - not sure
+					//ignoring if that uncodnital state isnt visible atm...
+					stateFound.pop();
+					unConditionalState = false;
+				} else {
+					addBackLogNode();
+
 				}
-				callBack = false;
-	
-				//lastState = m.group(4);
-	
 				
+				if (!visibleStates.isEmpty()) {
+					 if (currentBlock.empty()) {
+						unConditionalState = true;
+						
+						unconditionalState = new StateStore(m.group(4), "", null);
+						stateFound.push(m.group(4));
 	
+					
+					}else if (currentBlock.peek().equals("conditional")) { 
+						currentBlock.pop(); //we know the conditional is for a state 
+						currentBlock.push("state-conditional"); //therefore speicify this
+						
+						Node parentNode = theTree.getNode(stateFound.peek());
+						stateStore = new StateStore(m.group(4), events.peek(), parentNode);
+						stateFound.push(m.group(4));
+		
+
+					} else if (currentBlock.peek().equals("state-conditional")) {
+						
+						Node parentNode = theTree.getNode(stateFound.peek());
+						stateStore  = new StateStore(m.group(4), "unconditional", parentNode);
+							
+					} else if (currentBlock.peek().equals("case-state")) {
+						Node parentNode = theTree.getNode(stateFound.peek());
+						stateStore = new StateStore(m.group(4), "", parentNode);
+						stateFound.push(m.group(4));
+						callBack = true;
+					}
+							
+					
+
+							
+				}
 				
 				break;
 			case 4: //closed }
 				
 				if (!currentBlock.isEmpty()) {
-					if (currentBlock.peek().equals("switch-state")) {
-						switchStateActive = false;
+					if (currentBlock.peek().equals("conditional-state")) {
+//						visibleStates = savedVisibleStates;
 						currentBlock.pop();
-						return;
-					} else { 
+					} else if (currentBlock.peek().equals("state-conditional")) {
+						stateFound.pop();
+						currentBlock.pop();
+						if (!currentBlock.contains("state-conditional") && stateFound.size() > 1) {
+							stateFound.pop();
+						}
+					} else if (currentBlock.peek().equals("switch-state")) {
+						switchStateActive=false;
+						currentBlock.pop();
+					} else {
 						currentBlock.pop();
 					}
-							
 				}
 				
+				
+				
 				if (!events.isEmpty()) {
-					if (events.size() >1 && events.peek() == "call-back") {
-						events.pop();
-						events.pop();
-					} else {
-						events.pop();
-					}
-			
+					events.pop();
+					
 				}
 				
 				
@@ -358,16 +401,30 @@ public class OSMGenerator {
 				visibleStates.clear();
 				currentBlock.push("case-state"); //we know that the case is a state...
 				storedEvents.clear();
-//				if (m.group(2).equals("INIT")) {
-//					visibleStates.push("[*]");
-//				}
-//				else {
-//					visibleStates.push(m.group(2));
-//					result.append("state " + m.group(2));
-//					result.append("\n");
-//					lastState = m.group(2);
-//				}
-				caseName = m.group(2);
+				stateFound.clear();
+				stateStore = null;
+				if (m.group(2).equals("INIT")) {
+					initialState = m.group(2);
+					
+					Node node = new Node(m.group(2), null, "", true);
+					theTree = new StateTree(node);
+					stateFound.push(initialState);
+					visibleStates.push(node);
+					result.append("[*] -> " + initialState);
+					result.append("\n");
+					caseName = "INIT";
+				}
+				else {
+//					if (initialState == null) initialState = m.group(4);
+					Node node = new Node(m.group(2), null, "", true);
+					theTree = new StateTree(node);
+					stateFound.push(m.group(2));
+					visibleStates.push(node);
+					result.append("state " + m.group(2));
+					result.append("\n");
+					caseName = m.group(2);
+				}
+				
 
 				System.out.println("caseState: " + line + "the stateName: " + m.group(2));
 				
@@ -382,19 +439,29 @@ public class OSMGenerator {
 					
 				
 				} else if (currentBlock.peek() == "case-state") {
+					addBackLogNode();
+
 					if (currentBlock.contains("while-loop") && !caseName.equals("INIT")) {
 						boolean selfLoop = true;
 						transition = new StringBuilder();
-						for (int j =0; j<storedEvents.size(); j++) {
-							if (exitConditions.contains(storedEvents.get(j))) { //exit state no self loop
-								selfLoop = false;
-							}
-							transition.append(storedEvents.get(j));
-							if (j != storedEvents.size() -1) transition.append(" && ");
+
+						Node node = theTree.getNode(caseName);
+						System.out.println( theTree.getChildren(node).size());
+						System.out.println("CURRENRTBLOCK CASE STATE POP");
+						for (Node child : theTree.getChildren(node)) {
+							if (child.event.equals("unconditional")) selfLoop = false;
+							transition.append(negateCondition(child.event));
 						}
+						
+//						for (int j =0; j<storedEvents.size(); j++) {
+//							if (exitConditions.contains(storedEvents.get(j))) { //exit state no self loop
+//								selfLoop = false;
+//							}
+//							transition.append(storedEvents.get(j));
+//							if (j != storedEvents.size() -1) transition.append(" && ");
+//						}
 						if (selfLoop) {
 							if (transition.length() == 0) transition.append("No event found");
-							System.out.println("here :" + caseName);
 							result.append(caseName + " -> " + caseName + " : " + transition);
 							result.append("\n");
 							for (String methodCall : methodCalls) {
@@ -404,6 +471,8 @@ public class OSMGenerator {
 						}
 						
 					}
+					result.append(buildTransitionsFromTree(theTree, false));
+					drawTree = false;
 					methodCalls = new ArrayList<String>();
 					visibleStates.clear();
 					while(currentBlock.peek() != "case-state") currentBlock.pop(); 
@@ -433,10 +502,10 @@ public class OSMGenerator {
 			default: 
 				System.out.println("no match found");
 			}
-	
-	
+
+
 	}
-	
+
 	private StringBuilder buildTransitionsFromTree(StateTree theTree, boolean lastTree) {
 		ArrayList<Node> nodes = new ArrayList<Node>();
 		StringBuilder result = new StringBuilder();
@@ -452,18 +521,21 @@ public class OSMGenerator {
 				Node to = nodes.get(i);
 				if (to.index < from.index) continue;
 				
-				Routes route = theTree.getRoute(from, to);
-				if (route == null) continue;
+				TransitionInformation transitionInformation = theTree.getRoute(from, to);
+				if (transitionInformation == null) continue;
 				
 				StringBuilder transition = new StringBuilder();
 
-				for (Node node : route.route ) {
+				for (Node node : transitionInformation.route ) {
 					if (node.event.isEmpty()) continue;
+					if (node.event.equals("unconditional")) continue;
 					transition.append(node.event + " && ");
 				}
 				
-				for (Node node : route.metStates) {
+				for (Node node : transitionInformation.metStates) {
 					if (node.event.isEmpty()) continue;
+					if (node.event.equals("unconditional")) continue;
+
 					transition.append(negateCondition(node.event) + " && ");
 				}
 				
@@ -480,42 +552,42 @@ public class OSMGenerator {
 		}
 		if (lastTree) {
 			
-			for (String invisibleNode : invisibleNodes) {
-				result.append(invisibleNode + " -down-> [*] : " + saveTrans + "\n" );
-			}
-			
+//			for (String invisibleNode : invisibleNodes) {
+//				result.append(invisibleNode + " -down-> [*] : " + saveTrans + "\n" );
+//			}
+//			
 			Node exitNode = theTree.getNode("[*]");
 			
 			for (Node invisibleNode : theTree.nodes) {
 				
-				if (invisibleNode.visible) continue;
-				Routes route = theTree.getRoute(invisibleNode, exitNode);
-				
+//				if (invisibleNode.visible) continue;
+				TransitionInformation transitionInformation = theTree.getRoute(invisibleNode, exitNode);
+				if (transitionInformation == null) continue;
 				StringBuilder transition = new StringBuilder();
-	
-				for (Node node : route.route ) {
+
+				for (Node node : transitionInformation.route ) {
 					if (node.event.isEmpty()) continue;
 					transition.append(node.event + " && ");
 				}
 				
-				for (Node node : route.metStates) {
+				for (Node node : transitionInformation.metStates) {
 					if (node.event.isEmpty()) continue;
 					transition.append(negateCondition(node.event) + " && ");
 				}
 				if (transition.length() > 3)
 				transition.delete(transition.length()-3, transition.length());
 				if (transition.length() == 0) transition.append("No event found");
-	
+
 			
 				
-	
+
 				result.append(invisibleNode.stateName + " -down-> [*] : " + transition + "\n"); 
 				
 			}
 		}
 		return result;
 	}
-	
+
 	private void addBackLogNode() {
 		if (stateStore != null) {
 			Node node = new Node(stateStore.name,stateStore.parent, stateStore.event, callBack);
@@ -524,6 +596,8 @@ public class OSMGenerator {
 		}
 		callBack = false;
 	}
+	
+	
 	
 	private void normalFlow(int patternNo, String line, int lineNum, Matcher m) {
 		switch(patternNo) {
@@ -597,6 +671,12 @@ public class OSMGenerator {
 				
 				break;
 			case 2: //switch state
+				addBackLogNode();
+				Node exitNode = new Node("[*]", theTree.root, "", true);
+				
+				theTree.addNode(theTree.root, exitNode);
+				result.append(buildTransitionsFromTree(theTree, false));
+				
 				currentBlock.push("switch-state");
 				switchStateActive = true;
 				System.out.println("SWITCHING TO CONTROL LOOP");
@@ -604,7 +684,7 @@ public class OSMGenerator {
 				return;
 			case 3: //state change
 				System.out.println("state Change: " + line + "the State: " + m.group(4));
-		
+				drawTree = true;
 				if (initialState == null) {
 					
 					initialState = m.group(4);
@@ -625,7 +705,7 @@ public class OSMGenerator {
 						//Loop through all states and add them as a parent
 						for (Node invisibleNode : theTree.nodes)
 							if (!invisibleNode.visible) invisibleNodes.add(invisibleNode.stateName);
-						Node node = new Node(unconditionalState.name, theTree.root, "", true);
+						Node node = new Node(unconditionalState.name, theTree.root, "unconditional", true);
 
 						theTree.addNode(theTree.root, node);
 						result.append(buildTransitionsFromTree(theTree, false));
@@ -673,8 +753,7 @@ public class OSMGenerator {
 					} else if (currentBlock.peek().equals("state-conditional")) {
 						
 						Node parentNode = theTree.getNode(stateFound.peek());
-						stateStore  = new StateStore(m.group(4), "", parentNode);
-						stateFound.push(m.group(4));
+						stateStore  = new StateStore(m.group(4), "unconditional", parentNode);
 					}
 						
 					
@@ -692,6 +771,9 @@ public class OSMGenerator {
 					} else if (currentBlock.peek().equals("state-conditional")) {
 						stateFound.pop();
 						currentBlock.pop();
+						if (!currentBlock.contains("state-conditional") && stateFound.size() > 1) {
+							stateFound.pop();
+						}
 					} else {
 						currentBlock.pop();
 						
@@ -885,6 +967,8 @@ public class OSMGenerator {
 		methodCalls = new ArrayList<String>();
 		invisibleNodes = new ArrayList<String>();
 		unConditionalState = false;
+		drawTree =false;
+		switchStateActive=false;
 		//Initialize pattern store
 		if(!patternsInitialized) {
 			initializePatterns();
@@ -924,12 +1008,13 @@ public class OSMGenerator {
 						String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();						
 						identifyPattern(line, lineNum);
 					}
-					
-					addBackLogNode();
-					Node node = new Node("[*]", theTree.root, "", true);
-
-					theTree.addNode(theTree.root, node);
-					result.append(buildTransitionsFromTree(theTree, true));
+					if (drawTree) {
+						addBackLogNode();
+						Node node = new Node("[*]", theTree.root, "", true);
+	
+						theTree.addNode(theTree.root, node);
+						result.append(buildTransitionsFromTree(theTree, true));
+					}
 					
 
 
