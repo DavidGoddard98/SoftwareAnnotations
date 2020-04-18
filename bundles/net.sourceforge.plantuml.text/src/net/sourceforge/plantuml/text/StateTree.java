@@ -39,6 +39,23 @@ public class StateTree {
 			System.out.println("Couldnt find node");
 			return null;
 		}
+		
+		public Node findLastUnconditionalState() {
+			Node lastUnconditional = null;
+			int highestIndex = 0;
+			for (Node state : nodes) {
+				if (state.event.equals("unconditional") && state.visible) {
+					
+					if (state.index > highestIndex) {
+						highestIndex = state.index;
+						lastUnconditional = state;
+
+					}
+				}
+			}
+			if (highestIndex == 0) return this.root;
+			return lastUnconditional;
+		}
 	  
 	  
 		public void addNode(Node parent, Node node) {
@@ -61,26 +78,33 @@ public class StateTree {
 			return new ArrayList<Node>();
 		}
 		
+		public boolean checkForUnconditional(Node from, Node to, Node destination) {
+			for (Node node : getChildren(destination)) {
+				if (node.event.equals("unconditional") && node.visible) {
+					if (!to.visible && node.index > to.index) 	return true;
+					else if (node.index < to.index && from.index < node.index) return true;
+
+
+				}
+			}
+			return false;
+
+		}
+		
 		
 		//MAKE ARRAYLIST OF DESTINATION TO ROOT...
 		public ArrayList<Node> rootToDestination(Node from, Node to, Node destination) {
 
 			ArrayList<Node> route = new ArrayList<Node>();
 			
+			if (checkForUnconditional(from, to, destination)) return null;
+			
 			while (true) {
-				
-				for (Node node : getChildren(destination)) {
-					if (node.event.equals("unconditional") && node.visible) {
-						if (!to.visible && node.index > to.index) 	return null;
-						else if (node.index < to.index && from.index < node.index) return null;
-
-
-					}
-				}
+			
 				destination = destination.parent;
 				if (destination.visible && !destination.equals(from) && destination.index > from.index) 
 					return null;					
-				
+				if (checkForUnconditional(from, to, destination)) return null;
 				
 				route.add(destination);
 				if (destination.equals(root)) {
@@ -90,15 +114,15 @@ public class StateTree {
 			
 		}
 		
-		
-		public boolean findUnconditional(Node from, Node to) {
-			for (Node child : getChildren(from)) {
-				if (child.event.equals("unconditional") && child.visible && to.index > from.index && !child.equals(to) && !to.visible)
-					return true;
-			
-			}
-			return false;
-		}
+//		
+//		public boolean findUnconditional(Node from, Node to) {
+//			for (Node child : getChildren(from)) {
+//				if (child.event.equals("unconditional") && child.visible && to.index > from.index && !child.equals(to) && !to.visible)
+//					return true;
+//			
+//			}
+//			return false;
+//		}
 		
 		public TransitionInformation getRoute(Node from, Node to) {
 			ArrayList<Node> toDestination = rootToDestination(from, to, to);
@@ -108,7 +132,7 @@ public class StateTree {
 			//if (unconditionalParents.contains(from)) return null;
 			int fromIndex = from.index;
 			boolean nodeFound = false;
-			if (findUnconditional(from, to)) return null;
+			//if (findUnconditional(from, to)) return null;
 			boolean checker = false;
 			while (!nodeFound) {
 				
