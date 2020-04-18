@@ -146,6 +146,8 @@ public class OSMGenerator {
 	boolean drawTree = false;
 	boolean selfLoop = false;
 	boolean afterLoopState = false;
+	boolean nextLineConditionalValidate = false;
+	boolean oneLineConditional = false;
 	
 	
 	
@@ -168,6 +170,19 @@ public class OSMGenerator {
 				ignore = false;
 			} else
 				return;
+		}
+		
+		if (oneLineConditional) {
+			currentBlock.pop();
+			events.pop();
+			oneLineConditional = false;
+		}
+		
+		if (nextLineConditionalValidate) {
+			if (!line.matches("\\s*\\{\\s*([//]{2,}\\s*(.)*)*")) {
+				oneLineConditional = true;
+			}
+			nextLineConditionalValidate = false;
 		}
 		
 		
@@ -301,6 +316,12 @@ public class OSMGenerator {
 			case 1: //complex if guard
 				 System.out.println("good if guard " + line + "statement: " + m.group(2)) ;
 				 String expression = m.group(2);
+				 
+				 
+					 
+				 if (!m.group(3).equals("{")) { //check to see if the bracket is on the next line...
+					 nextLineConditionalValidate = true;
+				 }
 				
 				 if (!expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "").equals(expression)) {
 					 currentBlock.push("conditional-state");
@@ -695,6 +716,8 @@ public class OSMGenerator {
 		drawTree =false;
 		switchStateActive=false;
 		afterLoopState = false;
+		nextLineConditionalValidate = false;
+		boolean oneLineConditional = false;
 		//Initialize pattern store
 		if(!patternsInitialized) {
 			initializePatterns();
