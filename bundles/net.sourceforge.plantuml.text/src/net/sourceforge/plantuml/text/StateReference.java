@@ -51,7 +51,12 @@ public class StateReference extends StateTextDiagramHelper {
 	
 	
 	
-	
+//	Transition aTransition = new Transition(leftState, rightState, from.charStart, from.charEnd, 
+//			to.charStart, to.charEnd, to.event.multiLineStart, to.event.multiLineEnd);
+//	
+//	String line = leftState + " -down-> " + rightState + " : " + transition;
+//	StateReference stateReference = new StateReference(line, to.event.editorLine, to.event.lineNum, aTransition);
+//	
 	
 			
 	

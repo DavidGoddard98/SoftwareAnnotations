@@ -7,21 +7,27 @@ import java.util.Stack;
 public class Node {
 	
 	
-
+	
 	String stateName;
+	String editorLine;
 	Node parent;
-	String event;
 	int index;
 	boolean visible;
-	boolean partOfElseConditional;
+	int charStart;
+	int charEnd;
+	int lineNum;
+	Event event;
 
-	public Node(String stateName, Node parent, String event, boolean visible) {
+	public Node(String stateName, String editorLine, Node parent, boolean visible, int charStart, int charEnd, int lineNum, Event event) {
 		this.stateName = stateName;
+		this.editorLine = editorLine;
 		this.parent = parent;
-		this.event = event;
 		this.visible = visible;
 		this.index = 0;
-		this.partOfElseConditional = false;
+		this.charStart = charStart;
+		this.charEnd = charEnd;
+		this.lineNum = lineNum;
+		this.event = event;
  	}
   
 	protected void setIndex(int index) {
@@ -31,7 +37,6 @@ public class Node {
 	protected void setVisible() {
 		this.visible = true;
 	}
-  
 
 	@Override
 	public boolean equals(Object obj) {
@@ -42,12 +47,23 @@ public class Node {
 		if (getClass() != obj.getClass())
 			return false;
 		Node other = (Node) obj;
+		if (charEnd != other.charEnd)
+			return false;
+		if (charStart != other.charStart)
+			return false;
+		if (editorLine == null) {
+			if (other.editorLine != null)
+				return false;
+		} else if (!editorLine.equals(other.editorLine))
+			return false;
 		if (event == null) {
 			if (other.event != null)
 				return false;
 		} else if (!event.equals(other.event))
 			return false;
 		if (index != other.index)
+			return false;
+		if (lineNum != other.lineNum)
 			return false;
 		if (parent == null) {
 			if (other.parent != null)
@@ -65,7 +81,7 @@ public class Node {
 	}
 
 	public String toString() {
-		  return "StateName: " + this.stateName + " Index: " + this.index + " Event: " + this.event + " Visibility: " + this.visible + "\n" + "Parent: " + this.parent; 
+		  return "StateName: " + this.stateName + " Index: " + this.index + " Event: " + this.event.event + " Visibility: " + this.visible + "\n" + "Parent: " + this.parent; 
 	  }
   
 	  

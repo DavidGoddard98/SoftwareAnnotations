@@ -40,22 +40,20 @@ public class StateTextDiagramHelper  {
 	//These two arrays are explicitly linked. 
 	//The first one contains the names of the different annotation markers that are used to highlight various transitions in different colors
 	//The second one contains those marker colors as a string representation and are passed on to the plantuml library to color the transitions in their relevant colors.
-	final private static String[] allTransitionHighlights = {"FSM.Transition.Highlight_1", "FSM.Transition.Highlight_2", "FSM.Transition.Highlight_3", "FSM.Transition.Highlight_4", "FSM.Transition.Highlight_5", "FSM.Transition.Highlight_6"};
-	final private static String[] transitionColors = {"#Lime", "#Gold", "#FireBrick", "#HotPink", "#DarkOrchid", "#DarkGreen"};
+	final protected static String[] allTransitionHighlights = {"FSM.Transition.Highlight_1", "FSM.Transition.Highlight_2", "FSM.Transition.Highlight_3", "FSM.Transition.Highlight_4", "FSM.Transition.Highlight_5", "FSM.Transition.Highlight_6"};
+	final protected static String[] transitionColors = {"#Lime", "#Gold", "#FireBrick", "#HotPink", "#DarkOrchid", "#DarkGreen"};
 	
 	
-	String stateSelected; //stores a stateName if the selectedLine is a line containing a state description
-	int selectedLineNum;
+	protected static String stateSelected; //stores a stateName if the selectedLine is a line containing a state description
+	protected static int selectedLineNum;
 		
-	private StateDiagram stateDiagram = null;
+	protected static StateDiagram stateDiagram = null;
 	
 	
 	
 	public StateTextDiagramHelper() {
 		
 	}
-	
-	
 	
 	
 	
@@ -179,7 +177,7 @@ public class StateTextDiagramHelper  {
 	 * @param 	String - the line as seen in the editor
 	 * @return	String - null if the line is not a diagram descriptor, else return the line without the '//FSM:'
 	 */
-	private String stateDescriptor(String line) {
+	protected static String stateDescriptor(String line) {
 		
 	    String theLine = line.replaceAll("\\s+", "").toLowerCase();
 	    
@@ -209,7 +207,7 @@ public class StateTextDiagramHelper  {
 	 * @param start - the offset of the start of the descriptive region
 
 	 */
-	private void appendToLists(String line, String editorLine, int lineNum, int multiLineEnd, int start) throws BadLocationException {
+	protected static void appendToLists(String line, String editorLine, int lineNum, int multiLineEnd, int start) throws BadLocationException {
 		////////////////////
 		IRegion markerRegion = stateDiagram.finder.find(start, line, true, true, false, false);
 		///////////////////
@@ -348,7 +346,7 @@ public class StateTextDiagramHelper  {
 	 * @param startOffset - offset position in document of first line
 	 * @param maxLine - last line of region
 	 */
-	private void instantiateStateLinkMap(int startLine, boolean includeStart, int startOffset, int maxLine) throws BadLocationException {
+	protected void instantiateStateLinkMap(int startLine, boolean includeStart, int startOffset, int maxLine) throws BadLocationException {
 
 		Stack<PendingState> pendingStates = new Stack<PendingState>();
 		IDocument document = stateDiagram.document;
@@ -377,7 +375,7 @@ public class StateTextDiagramHelper  {
 	}
 	
 	//Filters stateLinkers map to create a new hashmap containing just transitionStates and their stateReferences
-	private void instantiateTransitionStateMap() {
+	protected static void instantiateTransitionStateMap() {
 		for (Map.Entry<String, ArrayList<StateReference>> entry : stateDiagram.stateLinkers.entrySet()) {
 
 
@@ -393,7 +391,7 @@ public class StateTextDiagramHelper  {
 	}
 	
 	
-	//The following functions creates new diagramText lines in order to create; -----------------------------------------------
+	//The following functions create new diagramText lines in order to create; -----------------------------------------------
 	//1) Links from the diagram back to the editor. ---------------------------------------------------------------------------
 	//2) Visualizations from the editor to the diagram by coloring parts of the diagram ---------------------------------------
 	
@@ -404,7 +402,7 @@ public class StateTextDiagramHelper  {
 	 * It also checks if the cursor point == charStart of a transitionState - if so it is treated as selected all references to that state are highlighted
 	 * @param selectionStart - the cursor selection point
 	 */
-	private void appendTransitionStates(int selectionStart) throws CoreException {
+	protected static void appendTransitionStates(int selectionStart) throws CoreException {
 		int charStart = 0;
 		int charEnd = 0;
 		for (Map.Entry<String, ArrayList<StateReference>> entry : stateDiagram.transitionStateReferences.entrySet()) {
@@ -453,7 +451,7 @@ public class StateTextDiagramHelper  {
 	 * For transitions.. If the line StateA -> StateB is selected, it will append 'StateA -[thickness=5,#Lime]> StateB'
 	 * @throws CoreException
 	 */
-	private void appendStateAndTransitions() throws CoreException {
+	protected static void appendStateAndTransitions() throws CoreException {
 		for (Map.Entry<String, ArrayList<StateReference>> entry : stateDiagram.stateLinkers.entrySet()) {
 
 
@@ -507,12 +505,12 @@ public class StateTextDiagramHelper  {
 	}
 	
 	//Link from the editor to the diagram for states
-	private String forwardStateLink(String stateName) {
+	protected static String forwardStateLink(String stateName) {
 		return "state " + stateName + " #Cyan";
 	}
 
 	//Link from the editor to the diagram for transitions
-	private String forwardTransitionLink(String selectedLine) {
+	protected static String forwardTransitionLink(String selectedLine) {
 		String colorTransition = "";
 		int indexOfArrow = selectedLine.indexOf("-");
 		String theArrow = selectedLine.substring(indexOfArrow+1, indexOfArrow +2);
@@ -522,21 +520,21 @@ public class StateTextDiagramHelper  {
 	}
 
 	//create link from diagram to the editor for a state
-	private String backwardStateLink(String stateName, int lineNum) {
+	protected static String backwardStateLink(String stateName, int lineNum) {
 		String link = "state " + stateName + "[["+stateDiagram.className+"#FSM#state#"+ lineNum +"]]";
 		return link;
 
 	}
 	
 	//create a link from diagram to the editor for a transitionState
-	private String backwardsTransitionStateLink(StateReference stateReference, String stateName) throws CoreException {
+	protected static String backwardsTransitionStateLink(StateReference stateReference, String stateName) throws CoreException {
 		createKey(stateReference);
 		String link = "state " + stateName + "[["+stateDiagram.className+"#FSM#"+stateReference.editorLine+"#"+stateReference.lineNum+"]]";
 		return link;
 	}
 
 	//create a link from diagram to the editor for a transition
-	private String backwardTransitionLink(String aLine, int lineNum, String originalLine) {
+	protected static String backwardTransitionLink(String aLine, int lineNum, String originalLine) {
 		if (aLine.contains(":")) {
 			int index = aLine.indexOf(":");
 			String transitionLabel = aLine.substring(index + 1, aLine.length());
@@ -556,7 +554,7 @@ public class StateTextDiagramHelper  {
 	 * @param stateName
 	 * @param line
 	 */
-	private void appendTextualDiagram(String stateName, String line) {
+	protected static void appendTextualDiagram(String stateName, String line) {
 		//all textual descs for this state
 		ArrayList<String> stateTextualDesc = new ArrayList<String>();
 
@@ -572,7 +570,7 @@ public class StateTextDiagramHelper  {
 	}
 	
 	//Loops through the textualDiagram map and constructs the diagramtext as a StringBuilder. This is what is returned from getDiagramTextLines()
-	private StringBuilder stateDiagramAsString() {
+	protected static StringBuilder stateDiagramAsString() {
 		StringBuilder result = new StringBuilder();
 		for (Map.Entry<String, ArrayList<String>> entry : stateDiagram.textualDiagram.entrySet()) {
 			ArrayList<String> textualDesc = entry.getValue();
@@ -593,7 +591,7 @@ public class StateTextDiagramHelper  {
 	
 	
 	//A key is created for every diagram text line and if it doesnt exist then a marker of that line and the relevant positions is created.
-	private void createKey(StateReference stateReference) throws CoreException {
+	protected static void createKey(StateReference stateReference) throws CoreException {
 		
 		String theLine = stateReference.editorLine;
 		int lineNum = stateReference.lineNum;
@@ -626,7 +624,7 @@ public class StateTextDiagramHelper  {
 	}
 
 	//creates a Marker of type FSM.MARKER
-	private void addMarkerTask(String theLine, int lineNum, int charStart, int charEnd) throws CoreException {
+	protected static void addMarkerTask(String theLine, int lineNum, int charStart, int charEnd) throws CoreException {
 
 		IMarker marker = stateDiagram.root.createMarker("FSM.MARKER");
 		marker.setAttribute(IMarker.MESSAGE, theLine);
@@ -646,7 +644,7 @@ public class StateTextDiagramHelper  {
 	 * @param charEnd - end offset of the transition/state
 	 * @return
 	 */
-	private boolean possibleChangedMarker(String theLine, int lineNum, int charStart, int charEnd) {
+	protected static boolean possibleChangedMarker(String theLine, int lineNum, int charStart, int charEnd) {
 		try {
 			IMarker[] allMarkers;
 		
@@ -738,7 +736,7 @@ public class StateTextDiagramHelper  {
 	
 	//Loops through stateLinkers map to determine if the selectedLine is equal to a state descriptive line. If so, then all references to that state
 	//are highlighted.
-	private void isStateSelected() throws CoreException { 
+	protected static void isStateSelected() throws CoreException { 
 		for (Map.Entry<String, ArrayList<StateReference>> entry : stateDiagram.stateLinkers.entrySet()) {
 
 
@@ -760,7 +758,7 @@ public class StateTextDiagramHelper  {
 	 * Yes the name is correct. For a given transtionState, this highlights all other transitions which reference that transitionState
 	 * @param stateReference
 	 */
-	private void displayTransitionStateTransitionMarkers(StateReference stateReference) throws CoreException {
+	protected static void displayTransitionStateTransitionMarkers(StateReference stateReference) throws CoreException {
 		int lineNum = stateReference.lineNum;
 		Transition transition = stateReference.transition;
 		
@@ -789,7 +787,7 @@ public class StateTextDiagramHelper  {
 	 * @param stateName - ...
 	 * @param stateReferences - all state references of that state - i.e any mention of it in the editor. 
 	 */
-	private void displayHighlights(String stateName, ArrayList<StateReference> stateReferences) throws CoreException {
+	protected static void displayHighlights(String stateName, ArrayList<StateReference> stateReferences) throws CoreException {
 
 		int charStart, charEnd, charTransStart, charTransEnd;
 
@@ -848,7 +846,7 @@ public class StateTextDiagramHelper  {
 	}
 	
 	//Highlights states in the editor
-	private void addHighlightState(int lineNum, int charStart, int charEnd) throws CoreException {
+	protected static void addHighlightState(int lineNum, int charStart, int charEnd) throws CoreException {
 		
 		IMarker marker = stateDiagram.root.createMarker("FSM.State.Highlight");
         marker.setAttribute(IMarker.LINE_NUMBER, lineNum);
@@ -858,7 +856,7 @@ public class StateTextDiagramHelper  {
 	}
 	
 	//Highlights transitions in the editor
-	private void addHighlightTransition(int lineNum, int multiLineStart, int multiLineEnd) throws CoreException {
+	protected static void addHighlightTransition(int lineNum, int multiLineStart, int multiLineEnd) throws CoreException {
 		
 		if (stateDiagram.colorCounter == 6) stateDiagram.colorCounter = 0; //loop through colors again
 		String transitionHighlighter = allTransitionHighlights[stateDiagram.colorCounter];

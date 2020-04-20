@@ -58,7 +58,10 @@ public class StateLinkOpener implements ILinkOpener {
 	        
 	        //find the FSM.MARKERS for the editor that relates to the diagram currently opened
 	    	IMarker[] markers = resource.findMarkers("FSM.MARKER", true, IResource.DEPTH_INFINITE);
-	    	
+	    	System.out.println();
+	    	System.out.println();
+	    	System.out.println();
+	    	System.out.println("NUM MARKERS" + markers.length);
 	    	//Loops through FSM markers and checks to see if any relate to the link that was clicked
 	    	for (IMarker m : markers) {
 	    		
