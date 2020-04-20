@@ -13,6 +13,7 @@ public class Node {
 	String event;
 	int index;
 	boolean visible;
+	boolean partOfElseConditional;
 
 	public Node(String stateName, Node parent, String event, boolean visible) {
 		this.stateName = stateName;
@@ -20,10 +21,15 @@ public class Node {
 		this.event = event;
 		this.visible = visible;
 		this.index = 0;
+		this.partOfElseConditional = false;
  	}
   
 	protected void setIndex(int index) {
 		this.index = index;
+	}
+	
+	protected void setVisible() {
+		this.visible = true;
 	}
   
 
