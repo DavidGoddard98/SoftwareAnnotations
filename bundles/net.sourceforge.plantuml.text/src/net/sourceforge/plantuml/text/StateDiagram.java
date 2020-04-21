@@ -2,6 +2,7 @@ package net.sourceforge.plantuml.text;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IPath;
@@ -15,7 +16,7 @@ public class StateDiagram extends StateTextDiagramHelper {
 	protected HashMap<String, ArrayList<StateReference>> stateLinkers; //stores the information of all the descriptive lines including charStart, charEnd, linenums ect.
 	HashMap<String, ArrayList<StateReference>>transitionStateReferences; //filters the map above and only stores the information of states only referenced in transitions
 
-	protected HashMap<String, ArrayList<String>> textualDiagram; //a map of strings that will eventually make up the string sent to plantuml
+	protected HashMap<String, LinkedHashSet<String>> textualDiagram; //a map of strings that will eventually make up the string sent to plantuml
 	protected ArrayList<String> addedTransitions; //a list of transitions already added - prevents duplicates occuring in diagram
 	protected ArrayList<String> actualStates; //states that are not only referenced in transitions..i.e 'State8 : a state'
 	
@@ -31,7 +32,7 @@ public class StateDiagram extends StateTextDiagramHelper {
 	StateDiagram(FindReplaceDocumentAdapter finder, IDocument document, IResource root, IPath path) {
 		this.stateLinkers = new HashMap<String, ArrayList<StateReference>>();
 		this.transitionStateReferences  = new HashMap<String, ArrayList<StateReference>>();
-		this.textualDiagram = new HashMap<String, ArrayList<String>> (); 
+		this.textualDiagram = new HashMap<String, LinkedHashSet<String>> (); 
 		this.addedTransitions =  new ArrayList<String>();
 		this.actualStates = new ArrayList<String>();
 		

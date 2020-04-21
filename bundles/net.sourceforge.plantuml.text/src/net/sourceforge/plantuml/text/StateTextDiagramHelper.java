@@ -4,6 +4,7 @@ package net.sourceforge.plantuml.text;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Stack;
 
@@ -146,7 +147,7 @@ public class StateTextDiagramHelper  {
 							stateDiagram.lastRegion = diagramRegion; 
 						} else { //region not changed so use previously saved information and rebuild the diagramText
 							stateDiagram.addedTransitions = new ArrayList<String>();
-							stateDiagram.textualDiagram = new HashMap<String, ArrayList<String>>();
+							stateDiagram.textualDiagram = new HashMap<String, LinkedHashSet<String>>();
 							stateDiagram.colorCounter = 0;
 							isStateSelected(); 
 							appendTransitionStates(selectionStart);
@@ -545,7 +546,6 @@ public class StateTextDiagramHelper  {
 
 	}
 	
-	
 	/**
 	 * Similar to the hashmap used to store the statereferences, this does the same but instead of statereferences it stores the line as a string.
 	 * Essentially it stores all of the lines used to describe the diagram and once they have all been collected it iterates through them appending
@@ -556,7 +556,7 @@ public class StateTextDiagramHelper  {
 	 */
 	protected static void appendTextualDiagram(String stateName, String line) {
 		//all textual descs for this state
-		ArrayList<String> stateTextualDesc = new ArrayList<String>();
+		LinkedHashSet<String> stateTextualDesc = new LinkedHashSet<String>();
 
 		if (stateDiagram.textualDiagram.containsKey(stateName)) {
 			stateTextualDesc = stateDiagram.textualDiagram.get(stateName);
@@ -572,8 +572,8 @@ public class StateTextDiagramHelper  {
 	//Loops through the textualDiagram map and constructs the diagramtext as a StringBuilder. This is what is returned from getDiagramTextLines()
 	protected static StringBuilder stateDiagramAsString() {
 		StringBuilder result = new StringBuilder();
-		for (Map.Entry<String, ArrayList<String>> entry : stateDiagram.textualDiagram.entrySet()) {
-			ArrayList<String> textualDesc = entry.getValue();
+		for (Map.Entry<String, LinkedHashSet<String>> entry : stateDiagram.textualDiagram.entrySet()) {
+			LinkedHashSet<String> textualDesc = entry.getValue();
 			for (String text : textualDesc) {
 				result.append(text);
 			}

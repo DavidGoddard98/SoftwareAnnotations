@@ -93,7 +93,7 @@ public class StateTree {
 		
 		public boolean checkForUnconditional(Node from, Node to, Node destination) {
 			for (Node node : getChildren(destination)) {
-				if (node.event.equals("unconditional") && node.visible) {
+				if (node.event.event.equals("unconditional") && node.visible) {
 					if (!to.visible && node.index > to.index) 	return true;
 					else if (node.index < to.index && from.index < node.index) return true;
 
@@ -179,7 +179,7 @@ public class StateTree {
 
 		
 		public String findChildren(Node node, Node from, Node to, ArrayList<Node> nodesMet, ArrayList<Node> route, ArrayList<Node> rootToDestination, boolean destinationNodeVisible) {
-			if (node.visible && node.event.equals("unconditional") &&  !node.equals(to) && !from.event.equals("else-unconditional") ) {
+			if (node.visible && node.event.event.equals("unconditional") &&  !node.equals(to) && !from.event.equals("else-unconditional") ) {
 				
 					return "unconditional";
 			
