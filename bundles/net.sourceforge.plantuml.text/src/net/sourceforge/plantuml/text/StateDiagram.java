@@ -12,7 +12,7 @@ import org.eclipse.jface.text.Region;
 
 //Stores relevant information about the latest diagram rendered. Is reinitialized each time the region containing the diagram descriptions
 //is changed
-public class StateDiagram extends StateTextDiagramHelper {
+public class StateDiagram  {
 	protected HashMap<String, ArrayList<StateReference>> stateLinkers; //stores the information of all the descriptive lines including charStart, charEnd, linenums ect.
 	HashMap<String, ArrayList<StateReference>>transitionStateReferences; //filters the map above and only stores the information of states only referenced in transitions
 
@@ -47,5 +47,12 @@ public class StateDiagram extends StateTextDiagramHelper {
 		this.colorCounter = 0;
 	}
 	
+	protected void clearStorage() {
+		this.stateLinkers.clear();
+		this.transitionStateReferences.clear();
+		this.textualDiagram.clear();
+		this.addedTransitions.clear();
+		this.actualStates.clear();
+	}
 }
 

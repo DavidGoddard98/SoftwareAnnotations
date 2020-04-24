@@ -88,7 +88,7 @@ public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextPro
 		//FSM/////////////////////////////////////////////////////////////////
 		
 		IResource root = StateTextDiagramHelper.getRoot(editorInput);
-		StateTextDiagramHelper.removeHighlights(root);
+		getStateTextDiagramHelper().removeHighlights(root);
 		String providerInfo = Activator.getDefault().getDiagramTextProviderId(this);
 		if (providerInfo.equals("net.sourceforge.plantuml.text.statemachineDiagramProvider")) { //user used @start_state_machine
 			return getStateTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes, editorInput);

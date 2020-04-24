@@ -2,8 +2,6 @@ package net.sourceforge.plantuml.text;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -14,31 +12,27 @@ import java.util.regex.Matcher;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspace;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
+
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.FindReplaceDocumentAdapter;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
-import org.eclipse.jface.text.Region;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IFileEditorInput;
 
 import net.sourceforge.plantuml.text.PatternIdentifier.RegexInfo;
-import net.sourceforge.plantuml.text.StateTextDiagramHelper.PendingState;
+import net.sourceforge.plantuml.text.PendingState;
 import net.sourceforge.plantuml.text.StateTree.TransitionInformation;
 import net.sourceforge.plantuml.text.StateDiagram;
 
-public class OSMGenerator {
+public class OSMGenerator extends StateTextDiagramHelper {
 
 	
 	final String prefix = "@start_OSM_generation", prefixRegex = prefix;
 	final String suffix = "@end_OSM_generation", suffixRegex = suffix;
-	final protected static String[] allTransitionHighlights = {"FSM.Transition.Highlight_1", "FSM.Transition.Highlight_2", "FSM.Transition.Highlight_3", "FSM.Transition.Highlight_4", "FSM.Transition.Highlight_5", "FSM.Transition.Highlight_6"};
-	final protected static String[] transitionColors = {"#Lime", "#Gold", "#FireBrick", "#HotPink", "#DarkOrchid", "#DarkGreen"};
+	protected static String[] transitionColors = {"#Lime", "#Gold", "#FireBrick", "#HotPink", "#DarkOrchid", "#DarkGreen"};
 	private boolean patternsInitialized = false;
 	private PatternIdentifier patternIdentifier;
 	
@@ -118,19 +112,26 @@ public class OSMGenerator {
  		else  return ">";
  	}
  	
- 	public OSMGenerator() {
+ 	public OSMGenerator(StateDiagram stateDiagram, String stateSelected, int selectedLineNum) {
+ 		this.stateDiagram = stateDiagram;
+ 		this.stateSelected = stateSelected;
+ 		this.selectedLineNum = selectedLineNum;
 		
 	}
+ 	
+ 	public OSMGenerator() {
+ 		
+ 	}
  	
  	//LINKING DIAGRAM TO TEXT VARIABLES//////
  	
  	StateDiagram stateDiagram;
  	int selectedLineNum;
 	String stateSelected;
-	private HashSet<String> plantMarkerKey = new HashSet<String>();
-	protected HashMap<String, LinkedHashSet<String>> textualDiagram; //a map of strings that will eventually make up the string sent to plantuml
-	
-	
+	protected HashSet<String> plantMarkerKey = new HashSet<String>();
+	StateTextDiagramHelper stateTextDiagramHelper;
+	StateDiagram stateDiagram2;
+	OSMGenerator osmGenerator;
 	
 	ArrayList<String> methodCalls;
 	ArrayList<String> declaredMethods;
@@ -138,9 +139,11 @@ public class OSMGenerator {
 	ArrayList<Node> exitStates;
 	ArrayList<Node> conditionalBlock;
 	ArrayList<String> ignoreArray;
+	ArrayList<String> addedStates;
 	Stack<String> currentBlock;
 	Stack<Event> events;
-	
+	Stack<PendingState> pendingStates;
+	int selStart;
 	
 	String whileStateName;
 	Stack<Node> stateFound;
@@ -161,7 +164,7 @@ public class OSMGenerator {
 	boolean certainEvent = true;
 	
 	
-	private void identifyPattern(String line, int lineNum, int startOfRegion) throws BadLocationException, CoreException {
+	private void identifyPattern(String line, int lineNum, int startOfRegion, int selectionStart) throws BadLocationException, CoreException {
 		
 		if (ignore) {
 			if (line.contains("{")) {
@@ -201,7 +204,8 @@ public class OSMGenerator {
 				
 			} else if (m.find() && info.identifier == 14) { //fsm comment
 				System.out.println("fsm comment " + line);
-				String removeFSM = line.substring(6);
+				String removeFSM = StateTextDiagramHelper.stateDescriptor(line);
+				if (removeFSM.equals("null")) return;
 				if (removeFSM.contains("EXIT")) {
 					removeFSM = removeFSM.replaceAll("\\s*(EXIT)\\s*-\\s*", "");
 					exitConditions = new ArrayList<String>(Arrays.asList(removeFSM.split("/")));
@@ -209,8 +213,28 @@ public class OSMGenerator {
 					removeFSM = removeFSM.replaceAll("\\s*(REMOVE)\\s*-\\s*", "");
 					ignoreArray.add(removeFSM.trim());
 				} else {
-					result.append(line.substring(6));
-					result.append("\n");
+				
+					
+					if (line.contains("{")) {
+						PendingState pendingState = new PendingState(removeFSM, line, lineNum);
+						pendingStates.push(pendingState);
+					}
+					else if (line.contains("}") && pendingStates.size() > 0) {
+						PendingState pendingState = pendingStates.pop();
+						stateTextDiagramHelper.appendToLists(pendingState.theLine, pendingState.editorLine, pendingState.lineNum, lineNum, startOfRegion);
+					} else if (line.contains("}")) { //no opening '{' so ignore - user error
+						return;
+					} else {
+						stateTextDiagramHelper.appendToLists(removeFSM, line, lineNum, -1, startOfRegion);
+					}
+					stateTextDiagramHelper.instantiateTransitionStateMap();
+					stateTextDiagramHelper.isStateSelected(); //if selectedLineNum == lineNum of a state then highlight all references to state
+					stateTextDiagramHelper.appendTransitionStates(selStart);
+					stateTextDiagramHelper.appendStateAndTransitions();
+					System.out.println(removeFSM);
+					
+					
+
 				}
 				
 			}
@@ -294,18 +318,13 @@ public class OSMGenerator {
 				StateReference theRightState = new StateReference(rightState, to.editorLine, to.lineNum, to.charStart, to.charEnd, false);
 				appendToLists(theRightState, rightState);
 				
-				
-				
-				
-				
-				//////////////////////////////////////////////////////////////////////////////////////////////////////////
-				//if (theTree.noLink.containsKey(from)) duplicateTransitions(from, to, transition);
+				////////////////////////////////////////////////////////////////////////////////////////////////////////
+				if (theTree.noLink.containsKey(from)) duplicateTransitions(from, to, transition);
 				
 				
 			}
 		}
 		if (lastTree) {
-			
 		
 			Node exitNode = theTree.getNode("[*]");
 			
@@ -465,11 +484,11 @@ public class OSMGenerator {
 				break;
 			case 2: //else guard
 				appendMethodCalls();
-				
-//				multiLineStart = markerRegion.getOffset();
-//				multiLineEnd = markerRegion.getOffset() + line.length(); //for now, will change when we find }
-//				transition = new Transition(multiLineStart, multiLineEnd, m.group(2));
-//				stateReference = new StateReference(line, line, lineNum, transition);
+				charStart = stateDiagram.document.getLineOffset(lineNum);
+				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
+				 
+				event = new Event("unconditional", line, charStart, charEnd, lineNum);
+
 				
 				
 				if (currentBlock.peek().equals("state-conditional"))
@@ -534,6 +553,7 @@ public class OSMGenerator {
 						String lastStateName = stateFound.peek().stateName;
 						buildStateTree(false);
 						appendStateAndTransitions();
+						appendPlantUML();
 						result.append(stateDiagramAsString());
 						Node newRoot = new Node(lastStateName, line, null, true, charStart, charEnd, lineNum, new Event(""));
 						theTree = new StateTree(newRoot);
@@ -605,7 +625,6 @@ public class OSMGenerator {
 						case "state-conditional":
 							appendMethodCalls();
 							certainEvent = false;
-//							events.peek().setLineEnd(charStart);
 							stateFound.pop();
 							break;
 						case "conditional":
@@ -629,7 +648,10 @@ public class OSMGenerator {
 							afterLoopState = true;
 							buildStateTree(false);
 							appendStateAndTransitions();
-					
+							appendPlantUML();
+
+							result.append(stateTextDiagramHelper.stateDiagramAsString());
+							stateTextDiagramHelper.stateDiagram.textualDiagram = new HashMap<String, LinkedHashSet<String>>();
 							result.append(stateDiagramAsString());
 							result.append("}" + "\n");
 							break;
@@ -731,7 +753,8 @@ public class OSMGenerator {
 					
 					methodCalls.clear();
 					buildStateTree(false);
-					
+					appendPlantUML();
+
 					while(currentBlock.peek() != "case-state") currentBlock.pop(); 
 					
 					currentBlock.pop();
@@ -755,8 +778,8 @@ public class OSMGenerator {
 				
 				addNodeBuildTree(whileState, theTree.root, false);
 				appendStateAndTransitions();
+				appendPlantUML();
 
-				
 				result.append(stateDiagramAsString());
 				//stateFound.push(whileState);
 
@@ -783,11 +806,15 @@ public class OSMGenerator {
 			default: 
 				System.out.println("no match found");
 			}
-		
-		
 	}
 	
 	
+	private void appendPlantUML() throws CoreException {
+		
+		result.append(stateTextDiagramHelper.stateDiagramAsString());
+		stateTextDiagramHelper.stateDiagram.clearStorage();
+
+	}
 	
 	private void appendMethodCalls() {
 		if (certainEvent && !stateFound.empty() && stateFound.peek().visible) {
@@ -848,10 +875,13 @@ public class OSMGenerator {
 		IPath path = ((IFileEditorInput) editorInput).getFile().getFullPath();
 		IResource root = StateTextDiagramHelper.getRoot(editorInput);
 		
-
+		selStart = selectionStart;
+		
 		
 		conditionalBlock = new ArrayList<Node>();
 		exitStates = new ArrayList<Node>();
+		addedStates = new ArrayList<String>();
+		pendingStates = new Stack<PendingState>();
 		currentBlock = new Stack<String>();
 		stateFound = new Stack<Node>();
 		result = new StringBuilder();
@@ -861,7 +891,6 @@ public class OSMGenerator {
 		declaredMethods = new ArrayList<String>();
 		ignoreArray = new ArrayList<String>();
 		methodCalls = new ArrayList<String>();
-		textualDiagram = new HashMap<String, LinkedHashSet<String>> (); 
 		unConditionalState = false;
 		drawTree =false;
 		afterLoopState = false;
@@ -876,9 +905,6 @@ public class OSMGenerator {
 		}
 		result.append("hide empty description" + "\n");
 		result.append("skinparam maxmessagesize 200" + "\n");
-		
-		
-		
 		
 		
 		try {
@@ -908,40 +934,30 @@ public class OSMGenerator {
 					///////////////////////////////////////////////////////////////////////////////////////////
 					
 					
-					
 					stateDiagram = new StateDiagram(finder, document, root, path);
-					
+					stateDiagram2 = new StateDiagram(finder, document, root, path);
+
 					selectedLineNum = document.getLineOfOffset(selectionStart);
 					stateSelected = "";
-					
-					IMarker[] allMarkers;
-					
-					allMarkers = stateDiagram.root.findMarkers("FSM.MARKER", true, IResource.DEPTH_INFINITE);
-					System.out.println("NUMBER OF MARKERS : " + allMarkers.length);
-					System.out.println("NUMBER OF KEYS : " + plantMarkerKey.size());
-					for (String key : plantMarkerKey) {
-						System.out.println(key);
-					}
-					System.out.println("SELECTED LINE NUM : " + selectedLineNum);
+					stateTextDiagramHelper = new StateTextDiagramHelper(stateDiagram2, stateSelected, selectedLineNum, plantMarkerKey);
+
 					
 					
 					for (int lineNum = startLine + (includeStart ? 0 : 1); lineNum < maxLine; lineNum++) {
 						String line = document.get(document.getLineOffset(lineNum), document.getLineLength(lineNum)).trim();						
-						identifyPattern(line, lineNum, startOffset);
+						identifyPattern(line, lineNum, startOffset, selectionStart);
 					}
+					
 					
 					if (drawTree) {
-						for (Node node : theTree.nodes) { 
-							System.out.println(node);
-						}
 						addNodeBuildTree( new Node("[*]", "", theTree.root, true, 0, 0, -1, new Event("")), theTree.root, true);
 						appendStateAndTransitions();
+						appendPlantUML();
 
-						
 						result.append(stateDiagramAsString());
+
 					}
 					
-					//isStateSelected(); //if selectedLineNum == lineNum of a state then highlight all references to state
 
 					
 				}
@@ -979,7 +995,7 @@ public class OSMGenerator {
 	 * @throws CoreException
 	 */
 	protected void appendStateAndTransitions() throws CoreException {
-		textualDiagram = new HashMap<String, LinkedHashSet<String>> (); 
+		stateDiagram.textualDiagram.clear();
 
 		for (Map.Entry<String, ArrayList<StateReference>> entry : stateDiagram.stateLinkers.entrySet()) {
 
@@ -999,20 +1015,23 @@ public class OSMGenerator {
 					if (stateName.equals(stateSelected)) { //color that node cyan
 						if (!stateName.equals("[*]")) {
 							String colorState = forwardStateLink(stateName);
-							appendTextualDiagram(stateName, backwardStateLink(stateName, lineNum) + "\n");
-							appendTextualDiagram(stateName, colorState + "\n"); 
+							appendTextualDiagram(stateDiagram, stateName, backwardStateLink(stateDiagram, stateName, lineNum) + "\n");
+							appendTextualDiagram(stateDiagram, stateName, colorState + "\n"); 
 						}
-						System.out.println();
-						System.out.println(stateReference.editorLine);
-						System.out.println(stateReference.isPlantUML);
-							if (!stateReference.isPlantUML )
-								System.out.println("state references .size : " + stateReferences.size());
-								displayHighlights(stateName, stateReference, null);
+						
+						if (!stateReference.isPlantUML ) {
+							displayHighlights(stateName, stateReference, null);
+						}
+							
+								
 						
 						
 					} else { //create the link from the diagram to the editor
-						if (!stateName.equals("[*]"))
-						appendTextualDiagram(stateName, backwardStateLink(stateName, lineNum) + "\n");
+						String backStateLink = backwardStateLink(stateDiagram, stateName, lineNum);
+						if (!stateName.equals("[*]") && !addedStates.contains(backStateLink)) {
+							addedStates.add(backStateLink);
+							appendTextualDiagram(stateDiagram, stateName, backStateLink + "\n");
+						}
 					}
 				}
 				
@@ -1026,16 +1045,15 @@ public class OSMGenerator {
 						
 						String colorTransition = forwardTransitionLink(line);
 					
-						appendTextualDiagram(stateName, backwardTransitionLink(colorTransition, lineNum, line) + "\n");
+						appendTextualDiagram(stateDiagram, stateName, backwardTransitionLink(stateDiagram, colorTransition, lineNum, line) + "\n");
 						displayTransitionStateTransitionMarkers(stateReference);
-
 						
 					} else { //dont color transition but create the link back
 						if (lineNum == 0) {
-							appendTextualDiagram(stateName, line + "\n");
+							appendTextualDiagram(stateDiagram, stateName, line + "\n");
 
 						} else {
-							appendTextualDiagram(stateName, backwardTransitionLink(line, lineNum, line) + "\n");
+							appendTextualDiagram(stateDiagram,stateName, backwardTransitionLink(stateDiagram, line, lineNum, line) + "\n");
 						}					
 					}
 					stateDiagram.addedTransitions.add(line);
@@ -1047,76 +1065,10 @@ public class OSMGenerator {
 		}
 	}
 	
-	//Link from the editor to the diagram for states
-	protected String forwardStateLink(String stateName) {
-		return "state " + stateName + " #Cyan";
-	}
-
-	//Link from the editor to the diagram for transitions
-	protected String forwardTransitionLink(String selectedLine) {
-		String colorTransition = "";
-		int indexOfArrow = selectedLine.indexOf("-");
-		String theArrow = selectedLine.substring(indexOfArrow+1, indexOfArrow +2);
-		String transColor = "#Lime";
-		colorTransition = selectedLine.substring(0, indexOfArrow) +  "-[thickness=3,"+transColor+"]" + theArrow + selectedLine.substring(indexOfArrow +2, selectedLine.length());
-		return colorTransition;
-	}
-
-	//create link from diagram to the editor for a state
-	protected String backwardStateLink(String stateName, int lineNum) {
-		String link = "state " + stateName + "[["+stateDiagram.className+"#FSM#state#"+ lineNum +"]]";
-		return link;
-
-	}
-	
-	//create a link from diagram to the editor for a transitionState
-	protected String backwardsTransitionStateLink(StateReference stateReference, String stateName) throws CoreException {
-		createKey(stateReference);
-		String link = "state " + stateName + "[["+stateDiagram.className+"#FSM#"+stateReference.editorLine+"#"+stateReference.lineNum+"]]";
-		return link;
-	}
-
-	//create a link from diagram to the editor for a transition
-	protected String backwardTransitionLink(String aLine, int lineNum, String originalLine) {
-		if (aLine.contains(":")) {
-			int index = aLine.indexOf(":");
-			String transitionLabel = aLine.substring(index + 1, aLine.length());
-			return aLine.substring(0, index -1) + " : " + "[["+stateDiagram.className+"#FSM#transition#"+lineNum+ transitionLabel +"]]";
-		}
-		
-		return aLine + " : " + "[["+stateDiagram.className+"#FSM#transition#"+lineNum+" "+originalLine+"]]";
-
-	}
-	
-	
-	/**
-	 * Similar to the hashmap used to store the statereferences, this does the same but instead of statereferences it stores the line as a string.
-	 * Essentially it stores all of the lines used to describe the diagram and once they have all been collected it iterates through them appending
-	 * them to a StringBuilder to be sent to the plant uml library. This is done so that the diagram remains consistent (the positioning of its components).
-	 * I was getting various errors as the order of the lines matters. 
-	 * @param stateName
-	 * @param line
-	 */
-	protected void appendTextualDiagram(String stateName, String line) {
-		//all textual descs for this state
-		LinkedHashSet<String> stateTextualDesc = new LinkedHashSet<String>();
-
-		if (textualDiagram.containsKey(stateName)) {
-			stateTextualDesc = textualDiagram.get(stateName);
-			if (stateTextualDesc.contains(line)) return;
-			stateTextualDesc.add(line);
-			textualDiagram.put(stateName, stateTextualDesc);
-			
-		} else {
-			stateTextualDesc.add(line);
-			textualDiagram.put(stateName, stateTextualDesc);
-		}
-	}
-	
 	//Loops through the textualDiagram map and constructs the diagramtext as a StringBuilder. This is what is returned from getDiagramTextLines()
 	protected StringBuilder stateDiagramAsString() {
 		StringBuilder result = new StringBuilder();
-		for (Map.Entry<String, LinkedHashSet<String>> entry : textualDiagram.entrySet()) {
+		for (Map.Entry<String, LinkedHashSet<String>> entry : stateDiagram.textualDiagram.entrySet()) {
 			LinkedHashSet<String> textualDesc = entry.getValue();
 			String stateName = entry.getKey();
 			String tmpSave = null;
@@ -1163,15 +1115,12 @@ public class OSMGenerator {
 		String key = stateDiagram.className + theLine + String.valueOf(lineNum + 1) + String.valueOf(charStart) + String.valueOf(charEnd);
 		
 		if (plantMarkerKey.contains(key)) {
-			System.out.println("Key exists");
 			return;
 		}
 		if (possibleChangedMarker(theLine, lineNum, charStart, charEnd)) { //returns true if the diagram text hasnt changed but its positions had. It updates the key + marker
-			System.out.println("marker changed");
 			return;
 		}
 		//else brand new line so create new marker and key
-		System.out.println("key doesnt exist, adding key");
 		plantMarkerKey.add(key);
 		
 		addMarkerTask(theLine, lineNum, charStart, charEnd);
@@ -1208,10 +1157,7 @@ public class OSMGenerator {
 
 				int markerCharStart = (int)aMarker.getAttribute(IMarker.CHAR_START);
 				int markerCharEnd = (int)aMarker.getAttribute(IMarker.CHAR_END);
-				
-				IDocument document = stateDiagram.document;
-				String sameLineInDoc = document.get(document.getLineOffset(markerLine-1), document.getLineLength(markerLine-1)).trim();
-				
+								
 				//Crossreferences old marker on that line with the diagramText on that line to see if different
 				if (markerLine == (lineNum + 1) && markerPath.equals(path)) {
 					if (!markerMessage.equals(theLine) || markerCharStart != charStart || markerCharEnd != charEnd) {
@@ -1249,23 +1195,11 @@ public class OSMGenerator {
 					}
 				}
 				
-//				//line deleted - delete marker and key
-//				if (!sameLineInDoc.equals(markerMessage)) {
-//					String oldKey = markerClassName + markerMessage + String.valueOf(markerLine)  + String.valueOf(markerCharStart) + String.valueOf(markerCharEnd);
-//					
-//					//delete key
-//					plantMarkerKey.remove(oldKey);
-//					//and marker 
-//					aMarker.delete();
-//				}
-				
 			}
 				
 		} catch (CoreException e) {
 			System.out.println("Failed to initialise keys");
-		} catch (BadLocationException e) {
-			System.out.println("Cant find same line in doc");
-		}
+		} 
 		return false;
 
 	}
@@ -1347,10 +1281,10 @@ public class OSMGenerator {
 				//Color the transitions on the diagram in the same colors you colored the transitions in the editor
 				String colorTransition = forwardTransitionLink(aStateReference.theLine);
 				if (lineNum == 0) {
-					appendTextualDiagram(stateName, aStateReference.theLine + "\n");
+					appendTextualDiagram(stateDiagram, stateName, aStateReference.theLine + "\n");
 		
 				} else {
-					appendTextualDiagram(stateName, backwardTransitionLink(colorTransition, lineNum, aStateReference.theLine) + "\n");
+					appendTextualDiagram(stateDiagram, stateName, backwardTransitionLink(stateDiagram, colorTransition, lineNum, aStateReference.theLine) + "\n");
 				}
 				stateDiagram.addedTransitions.add(theLine);
 				stateDiagram.colorCounter++;
@@ -1380,31 +1314,6 @@ public class OSMGenerator {
         marker.setAttribute(IMarker.CHAR_START,multiLineStart);
         marker.setAttribute(IMarker.CHAR_END,multiLineEnd);
 	}
-	
-	
-	//Clears all of the highlights in the editor
-	protected void removeHighlights(IResource resource) {
-		try {
-			
-			IMarker[] markers = resource.findMarkers("FSM.State.Highlight", true, IResource.DEPTH_INFINITE);
-			for (IMarker m : markers) {
-				m.delete();
-			}
-			for (int j=0; j<allTransitionHighlights.length; j++) {
-				markers = resource.findMarkers(allTransitionHighlights[j], true, IResource.DEPTH_INFINITE);
-				for (IMarker m : markers) {
-					m.delete();
-				}
-			}
-			
-		} catch (CoreException e) {
-			System.out.println("Couldnt remove highlights");
-		}
-	}
-	
-
-	
-	
 }
 	
 	

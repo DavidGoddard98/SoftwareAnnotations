@@ -1,6 +1,6 @@
 package net.sourceforge.plantuml.text;
 
-public class Transition extends StateTextDiagramHelper {
+public class Transition  {
 
 	//Used to store information about transitions such as the leftState name and the relevant char positions of everything in the transition
 	protected String leftState;

@@ -2,7 +2,7 @@ package net.sourceforge.plantuml.text;
 
 
 //Class used to all state machine references in the editor such as their lineNum, charStart and end....
-public class StateReference extends StateTextDiagramHelper {
+public class StateReference {
 
 	protected String theLine;
 	protected String editorLine;
@@ -102,18 +102,6 @@ public class StateReference extends StateTextDiagramHelper {
 			return false;
 		return true;
 	}
-	
-	
-	
-	
-	
-//	Transition aTransition = new Transition(leftState, rightState, from.charStart, from.charEnd, 
-//			to.charStart, to.charEnd, to.event.multiLineStart, to.event.multiLineEnd);
-//	
-//	String line = leftState + " -down-> " + rightState + " : " + transition;
-//	StateReference stateReference = new StateReference(line, to.event.editorLine, to.event.lineNum, aTransition);
-//	
-	
 			
 	
 }
