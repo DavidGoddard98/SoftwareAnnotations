@@ -1,4 +1,0 @@
-@startuml
-class ClassWithoutMembers [[java:net.sourceforge.plantuml.jdt.test.ClassWithoutMembers]] {
-}
-@enduml

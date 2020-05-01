@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature url="features/plantuml.statemachine.generation.feature_1.0.0.202005011359.jar" id="plantuml.statemachine.generation.feature" version="1.0.0.202005011359">
+      <category name="State Machine Generation - PlantUML Add-on"/>
+   </feature>
+   <category-def name="State Machine Generation - PlantUML Add-on" label="State Machine Generation - PlantUML Add-on">
+      <description>
+         An add-on for the Plant-UML tool with the capability to automatically generate state machines. Links also exist between diagram and code.
+      </description>
+   </category-def>
+</site>
