@@ -1,3 +1,0 @@
-```plantuml
-class DiagramMd
-```
