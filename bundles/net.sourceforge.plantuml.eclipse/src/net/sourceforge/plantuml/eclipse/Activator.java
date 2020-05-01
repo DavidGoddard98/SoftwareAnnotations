@@ -168,6 +168,7 @@ public class Activator extends AbstractUIPlugin implements DiagramTextProviderRe
 				final String name = ces.getName();
 				if ("diagramTextProvider".equals(name)) {
 					try {
+						System.out.println(ces.getAttribute("providerClass"));
 						final DiagramTextProvider diagramTextProvider = (DiagramTextProvider) ces.createExecutableExtension("providerClass");
 						final String priorityValue = ces.getAttribute("priority");
 						int priority = NORMAL_PRIORITY;

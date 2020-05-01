@@ -1,4 +1,4 @@
-package net.sourceforge.plantuml.text;
+package plantuml.osm.generation;
 
 public class Event {
 	
@@ -18,13 +18,18 @@ public class Event {
 		this.lineNum = lineNum;
 	}
 	
-	Event(String event) {
+	public Event(String event) {
 		this.event = event;
 	}
 	
 	public void setLineEnd(int charEnd) {
 		this.multiLineEnd = charEnd;
 	}
+	
+	public void printTest() {
+		System.out.println("printest");
+	}
+	
 
 }
 

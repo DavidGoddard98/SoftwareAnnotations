@@ -1,4 +1,4 @@
-package net.sourceforge.plantuml.eclipse.utils;
+package plantuml.osm.generation;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
@@ -10,7 +10,8 @@ import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 
-
+import net.sourceforge.plantuml.eclipse.utils.ILinkOpener;
+import net.sourceforge.plantuml.eclipse.utils.LinkData;
 
 public class StateLinkOpener implements ILinkOpener {
 	
@@ -20,7 +21,7 @@ public class StateLinkOpener implements ILinkOpener {
 		String href = link.href;
 		
 		if (href.contains("FSM")) { 
-			return STATE_SUPPORT;
+			return CUSTOM_SUPPORT;
 		}
 		return NO_SUPPORT;
 	}

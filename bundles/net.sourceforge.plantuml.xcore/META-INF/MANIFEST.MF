@@ -13,7 +13,5 @@ Import-Package: net.sourceforge.plantuml.eclipse.utils,
  org.eclipse.jface.text,
  org.eclipse.jface.viewers,
  org.eclipse.ui,
- org.eclipse.ui.editors.text,
- org.eclipse.xtext.resource,
- org.eclipse.xtext.ui.editor,
- org.eclipse.xtext.util.concurrent
+ org.eclipse.ui.editors.text
+

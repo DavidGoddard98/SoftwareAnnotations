@@ -1,4 +1,4 @@
-package net.sourceforge.plantuml.text;
+package plantuml.osm.generation;
 
 
 //Class used to all state machine references in the editor such as their lineNum, charStart and end....

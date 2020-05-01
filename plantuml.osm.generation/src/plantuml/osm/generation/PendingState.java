@@ -1,4 +1,4 @@
-package net.sourceforge.plantuml.text;
+package plantuml.osm.generation;
 
 public class PendingState {
 	//This class is used to store various information about an '//FSM:' line in the editor and is only used

@@ -26,7 +26,8 @@ Import-Package: net.sourceforge.plantuml.eclipse.utils,
  org.eclipse.ui,
  org.eclipse.ui.navigator.resources,
  org.eclipse.ui.texteditor,
- org.osgi.framework;version="1.8.0"
+ org.osgi.framework;version="1.8.0",
+ plantuml.osm.generation
 Export-Package: net.sourceforge.plantuml.jdt
 Bundle-ActivationPolicy: lazy
 Bundle-Activator: net.sourceforge.plantuml.jdt.Activator

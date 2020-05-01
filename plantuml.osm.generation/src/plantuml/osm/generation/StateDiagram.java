@@ -1,4 +1,4 @@
-package net.sourceforge.plantuml.text;
+package plantuml.osm.generation;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -1,15 +1,19 @@
-package net.sourceforge.plantuml.text;
+package plantuml.osm.generation;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Stack;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
 
@@ -19,13 +23,15 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.FindReplaceDocumentAdapter;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
+import org.eclipse.jface.text.TextSelection;
+import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IFileEditorInput;
 
-import net.sourceforge.plantuml.text.PatternIdentifier.RegexInfo;
-import net.sourceforge.plantuml.text.PendingState;
-import net.sourceforge.plantuml.text.StateTree.TransitionInformation;
-import net.sourceforge.plantuml.text.StateDiagram;
+import plantuml.osm.generation.PatternIdentifier.RegexInfo;
+import plantuml.osm.generation.PendingState;
+import plantuml.osm.generation.StateTree.TransitionInformation;
+import plantuml.osm.generation.StateDiagram;
 
 public class OSMGenerator extends StateTextDiagramHelper {
 
@@ -551,11 +557,12 @@ public class OSMGenerator extends StateTextDiagramHelper {
 					//IF THIS IS VISIBLE
 					if (stateFound.peek().visible) {
 						String lastStateName = stateFound.peek().stateName;
+						Node newRoot = new Node(lastStateName, line, null, true, stateFound.peek().charStart, stateFound.peek().charEnd, stateFound.peek().lineNum, new Event(""));
+
 						buildStateTree(false);
 						appendStateAndTransitions();
 						appendPlantUML();
 						result.append(stateDiagramAsString());
-						Node newRoot = new Node(lastStateName, line, null, true, charStart, charEnd, lineNum, new Event(""));
 						theTree = new StateTree(newRoot);
 
 						stateFound.push(newRoot);
@@ -897,6 +904,7 @@ public class OSMGenerator extends StateTextDiagramHelper {
 		nextLineConditionalValidate = false;
 		oneLineConditional = false;
 		selfLoop = false;
+		exitConditions = new ArrayList<String>();
 		//Initialize pattern store
 		if(!patternsInitialized) {
 			initializePatterns();
@@ -1314,6 +1322,7 @@ public class OSMGenerator extends StateTextDiagramHelper {
         marker.setAttribute(IMarker.CHAR_START,multiLineStart);
         marker.setAttribute(IMarker.CHAR_END,multiLineEnd);
 	}
+
 }
 	
 	

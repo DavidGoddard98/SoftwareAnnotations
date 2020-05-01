@@ -1,4 +1,4 @@
-package net.sourceforge.plantuml.text;
+package plantuml.osm.generation;
 
 public class Transition  {
 

@@ -1,5 +1,5 @@
 
-package net.sourceforge.plantuml.text;
+package plantuml.osm.generation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,8 +26,8 @@ import org.eclipse.jface.text.Region;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IFileEditorInput;
 
-import net.sourceforge.plantuml.text.StateReference;
-import net.sourceforge.plantuml.text.Transition;
+import plantuml.osm.generation.StateReference;
+import plantuml.osm.generation.Transition;
 
 public class StateTextDiagramHelper  {
 	

@@ -156,9 +156,6 @@ public abstract class AbstractDiagramSourceView extends ViewPart {
 		toggleAction = 	new Action() {
 			@Override
 			public void run() {
-				if (isChecked()) {
-					updateDiagramText(true, null, null);
-				}
 			}
 		};
 		toggleAction.setToolTipText(PlantumlConstants.TOGGLE_GENERATION_BUTTON);

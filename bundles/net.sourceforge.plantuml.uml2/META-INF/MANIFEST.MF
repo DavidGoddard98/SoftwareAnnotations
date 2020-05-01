@@ -13,5 +13,5 @@ Import-Package: net.sourceforge.plantuml.eclipse.utils,
  org.eclipse.emf.ecore,
  org.eclipse.emf.ecore.util,
  org.eclipse.jface.viewers,
- org.eclipse.ui,
- org.eclipse.uml2.uml
+ org.eclipse.ui
+ 

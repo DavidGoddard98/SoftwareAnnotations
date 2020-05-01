@@ -21,6 +21,7 @@ public class JavaViewDiagramTextProvider extends JdtDiagramTextProvider {
 
 	@Override
 	public String getDiagramText(final IViewPart viewPart, final ISelection selection) {
+		System.out.println("CCCCUUUUNNNNNTTT");
 		final Collection<IType> javaElements = getSelectedTypes(selection);
 		final StringBuilder result = new StringBuilder();
 		for (final IType javaElement : javaElements) {

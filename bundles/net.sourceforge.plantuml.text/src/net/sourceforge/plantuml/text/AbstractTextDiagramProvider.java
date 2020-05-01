@@ -24,7 +24,6 @@ import net.sourceforge.plantuml.eclipse.utils.DiagramTextProvider2;
 import net.sourceforge.plantuml.eclipse.utils.PlantumlConstants;
 
 public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextProvider implements DiagramTextProvider2, DiagramTextIteratorProvider {
-	IDocument document;
 
 	public AbstractTextDiagramProvider() {
 		setEditorType(ITextEditor.class);
@@ -49,27 +48,6 @@ public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextPro
 		return PlantumlConstants.END_UML;
 	}
 	
-	//FSM///////////////////////////////////////////////////////////////////////
-	
-	private StateTextDiagramHelper stateTextDiagramHelper = null;
-	
-	public StateTextDiagramHelper getStateTextDiagramHelper() {
-		if (stateTextDiagramHelper == null) {
-			stateTextDiagramHelper = new StateTextDiagramHelper();
-		}
-		return stateTextDiagramHelper;
-	}
-	
-	private OSMGenerator osmGenerator = null;
-	
-	public OSMGenerator getOSMGenerator() {
-		if (osmGenerator == null) {
-			osmGenerator = new OSMGenerator();
-		}
-		return osmGenerator;
-	}
-	
-	//////////////////////////////////////////////////////////////////////////////
 
 	private TextDiagramHelper textDiagramHelper = null;
 
@@ -77,26 +55,19 @@ public abstract class AbstractTextDiagramProvider extends AbstractDiagramTextPro
 		if (textDiagramHelper == null) {
 			textDiagramHelper = new TextDiagramHelper(getStartPlantUml(), getStartPlantUmlRegex(), getEndPlantUml(), getEndPlantUmlRegex());
 		}
+		
 		return textDiagramHelper;
 	}
 	
 	
+	
+	
 	protected StringBuilder getDiagramTextLines(final IEditorPart editorPart, final IEditorInput editorInput, final ISelection selection, final Map<String, Object> markerAttributes) {
+		System.out.println("We here boniji");
 		final ITextEditor textEditor = (ITextEditor) editorPart;
-		document = textEditor.getDocumentProvider().getDocument(editorInput);
+		final IDocument document = textEditor.getDocumentProvider().getDocument(editorInput);
 		final int selectionStart = ((ITextSelection) (selection != null ? selection : textEditor.getSelectionProvider().getSelection())).getOffset();
-		//FSM/////////////////////////////////////////////////////////////////
-		
-		IResource root = StateTextDiagramHelper.getRoot(editorInput);
-		getStateTextDiagramHelper().removeHighlights(root);
-		String providerInfo = Activator.getDefault().getDiagramTextProviderId(this);
-		if (providerInfo.equals("net.sourceforge.plantuml.text.statemachineDiagramProvider")) { //user used @start_state_machine
-			return getStateTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes, editorInput);
-		////////////////////////////////////////////////////////////////////////
-		} else if (providerInfo.equals("net.sourceforge.plantuml.text.autoGenerateOSMDiagramProvider")) {
-			return getOSMGenerator().getDiagramTextLines(document, selectionStart, markerAttributes, editorInput);
-		} else
-			return getTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes);
+		return getTextDiagramHelper().getDiagramTextLines(document, selectionStart, markerAttributes);
 	}
 	
 	public String getDiagramText(final CharSequence lines) {
