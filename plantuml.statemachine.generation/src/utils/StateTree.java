@@ -21,6 +21,12 @@ public class StateTree {
 		links.put(root, new ArrayList<Node>());
 		this.root = root;
 	}
+	public StateTree(StateTree copy) {
+		this.nodes = copy.nodes;
+		this.links = copy.links;
+		this.noLink = copy.noLink;
+		this.root = copy.root;
+	}
 		
 	public class TransitionInformation {
 			
@@ -83,6 +89,19 @@ public class StateTree {
 		}
 		currentIndex ++;
 	}
+	
+	public ArrayList<Node> getAllDescendants(Node parent) {
+		ArrayList<Node> allDescendants = new ArrayList<Node>();
+		if (parent.visible) allDescendants.add(parent);
+		for (Node node : nodes) {
+			if (node.index > parent.index && node.visible) {
+				allDescendants.add(node);
+			}
+		}
+		return allDescendants;
+	}
+			
+
 
 	public ArrayList<Node> getChildren(Node parent) {
 		if (links.get(parent) != null)
@@ -175,6 +194,8 @@ public class StateTree {
 		return new TransitionInformation(route, nodesMet);
 			
 	}
+	
+
 
 	
 	public String findChildren(Node node, Node from, Node to, ArrayList<Node> nodesMet, ArrayList<Node> route, ArrayList<Node> rootToDestination, boolean destinationNodeVisible) {

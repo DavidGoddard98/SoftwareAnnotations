@@ -17,6 +17,7 @@ public class Node {
 	public int charEnd;
 	public int lineNum;
 	public Event event;
+	public ArrayList<Action> action;
 
 	public Node(String stateName, String editorLine, Node parent, boolean visible, int charStart, int charEnd, int lineNum, Event event) {
 		this.stateName = stateName;
@@ -24,6 +25,7 @@ public class Node {
 		this.parent = parent;
 		this.visible = visible;
 		this.index = 0;
+		this.action = new ArrayList<Action>();
 		this.charStart = charStart;
 		this.charEnd = charEnd;
 		this.lineNum = lineNum;
