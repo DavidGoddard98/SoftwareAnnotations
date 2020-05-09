@@ -433,7 +433,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 				 if (m.group(1).equals("if")) {
 					 conditionalBlock = new ArrayList<Node>();
 					 
-				 } else if (currentBlock.peek().equals("state-conditional")) {
+				 } else if (!currentBlock.empty() && currentBlock.peek().equals("state-conditional")) {
 					 conditionalBlock.add(stateFound.peek());
 				 }
 				 
@@ -516,7 +516,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 
 				
 				
-				if (currentBlock.peek().equals("state-conditional"))
+				if (!currentBlock.empty() && currentBlock.peek().equals("state-conditional"))
 					conditionalBlock.add(stateFound.peek());
 				if (m.group(1).contains("}") && !currentBlock.empty()) {
 					
@@ -636,12 +636,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					Node node = new Node(m.group(4), line, null, true, charStart, charEnd, lineNum , new Event("")); 
 					theTree = new StateTree(node);
 					stateFound.push(node);
-				} else if (!currentBlock.empty() && currentBlock.peek().equals("while-loop-unconditional") ) {
-					result.append("[*] -> " + m.group(4) + "\n");
-					Node node = new Node(m.group(4), line, null, true, charStart, charEnd, lineNum , new Event("")); 
-					theTree = new StateTree(node);
-					stateFound.push(node);
-				}
+				} 
 
 		
 				break;
@@ -668,7 +663,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 								stateFound.pop();
 							}
 							break;
-						case "while-loop-unconditional":
+						case "while-loop":
 							afterLoopState = true;
 							buildStateTree(false);
 							appendStateAndTransitions();
@@ -679,19 +674,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 							result.append(stateDiagramAsString());
 							result.append("}" + "\n");
 							break;
-						case "while-loop": 
-							buildStateTree(false);
-							appendStateAndTransitions();
-							appendPlantUML();
-							System.out.println("heeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
-							result.append(stateTextDiagramHelper.stateDiagramAsString());
-							stateTextDiagramHelper.stateDiagram.textualDiagram = new HashMap<String, LinkedHashSet<String>>();
-							result.append(stateDiagramAsString());
-							theTree = storeTree;
-							currentBlock = currentBlockStore;
-							stateFound = stateFoundStore;
-							result.append("}" + "\n");
-							break;
+						
 					}
 					currentBlock.pop();
 				}
@@ -709,7 +692,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 				
 				int index = m.group(1).indexOf("(");
 				String method = m.group(1).substring(0, index);
-				if (declaredMethods.contains(method)){
+				if (!stateFound.empty() && declaredMethods.contains(method)){
 					
 					for (Node descendant : theTree.getAllDescendants(stateFound.peek())) {
 						descendant.action.add(new Action(m.group(1), theTree.currentIndex-1));
@@ -733,7 +716,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 			case 9: //case 
 				charStart = stateDiagram.document.getLineOffset(lineNum);
 				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
-				if (currentBlock.peek().equals("case-state")) currentBlock.pop(); //no break inbetween
+				if (!currentBlock.empty() && currentBlock.peek().equals("case-state")) currentBlock.pop(); //no break inbetween
 				if (ignoreArray.contains(m.group(2))) break;
 
 				currentBlock.push("case-state"); //we know that the case is a state...
@@ -754,66 +737,69 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 				
 				break;
 			case 10:  //break regex
-				if (currentBlock.peek() == "conditional") {
-					//probably dont need the .contains("case-state") above...
-					ignore = true;
-					ignoreStack.push("ignore");
-					break;
+				if (!currentBlock.empty()) {
+					if (currentBlock.peek() == "conditional") {
+						//probably dont need the .contains("case-state") above...
+						ignore = true;
+						ignoreStack.push("ignore");
+						break;
+						
 					
-				
-				} else if (currentBlock.peek() == "case-state") {
-					String caseName = stateFound.firstElement().stateName;
-					Node caseNode = stateFound.firstElement();
-					if (selfLoop) {
-						StringBuilder transition = new StringBuilder();
-
-						node = stateFound.firstElement();
-						
-						for (Node child : theTree.getChildren(node)) {
-							transition.append(negateCondition(child.event.event));
-						}
-						
-						
-						
-						if (transition.length() == 0) transition.append("No event found");
-						else {
-							transition.insert(0, '[');
-							transition.append("]");
-						}
-						if (!caseNode.action.isEmpty()) {
-							boolean toggle = true;
-							for (Action action: caseNode.action) {
-								if (action.index == caseNode.index) {
-									if (toggle) {
-										transition.append(" / ");
-										toggle = false;
+					} else if (currentBlock.peek() == "case-state") {
+						String caseName = stateFound.firstElement().stateName;
+						Node caseNode = stateFound.firstElement();
+						if (selfLoop) {
+							StringBuilder transition = new StringBuilder();
+	
+							node = stateFound.firstElement();
+							
+							for (Node child : theTree.getChildren(node)) {
+								transition.append(negateCondition(child.event.event));
+							}
+							
+							
+							
+							if (transition.length() == 0) transition.append("No event found");
+							else {
+								transition.insert(0, '[');
+								transition.append("]");
+							}
+							if (!caseNode.action.isEmpty()) {
+								boolean toggle = true;
+								for (Action action: caseNode.action) {
+									if (action.index == caseNode.index) {
+										if (toggle) {
+											transition.append(" / ");
+											toggle = false;
+										}
+										transition.append(action.action + " ; ");
 									}
-									transition.append(action.action + " ; ");
 								}
 							}
+	
+							String stateName = node.stateName;
+							if(stateName.equals("INIT")) stateName = "[*]";
+							StateReference theState = new StateReference(stateName, node.editorLine, node.lineNum, node.charStart, node.charEnd, false);
+							
+							if (!ignoreArray.contains(caseName + " -> " + caseName + " : " + transition)) {
+								result.append(caseName + " -> " + caseName + " : " + transition + "\n");
+	
+							} 
+							appendToLists(theState, "");			
+	
+							
+							
 						}
+						methodCalls.clear();
+						buildStateTree(false);
+						appendPlantUML();
 
-						String stateName = node.stateName;
-						if(stateName.equals("INIT")) stateName = "[*]";
-						StateReference theState = new StateReference(stateName, node.editorLine, node.lineNum, node.charStart, node.charEnd, false);
+						while(currentBlock.peek() != "case-state") currentBlock.pop(); 
 						
-						if (!ignoreArray.contains(caseName + " -> " + caseName + " : " + transition)) {
-							result.append(caseName + " -> " + caseName + " : " + transition + "\n");
-
-						} 
-						appendToLists(theState, "");			
-
-						
-						
+						currentBlock.pop();
 					}
 					
-					methodCalls.clear();
-					buildStateTree(false);
-					appendPlantUML();
-
-					while(currentBlock.peek() != "case-state") currentBlock.pop(); 
 					
-					currentBlock.pop();
 				}
 				
 				break;
@@ -825,34 +811,22 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 				
 			case 11: //whileLoop
 				
+				currentBlock.push("while-loop");
 				selfLoop = true;
 				charStart = stateDiagram.document.getLineOffset(lineNum);
 				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
-				Event whileCondition = new Event(m.group(1), line, charStart, charEnd, lineNum);
-				whileStateName = m.group(1);
-				if (currentBlock.isEmpty()) {
-					Node whileState = new Node(m.group(1), line, theTree.root, true, charStart, charEnd, lineNum, whileCondition);	
-
-					currentBlock.push("while-loop-unconditional");
-					addNodeBuildTree(whileState, theTree.root, false);
-					appendStateAndTransitions();
-					appendPlantUML();
-					
 				
-					result.append(stateDiagramAsString());
-					
-				} else {
-					Node whileState = new Node(m.group(1) , line, theTree.root, true, charStart, charEnd, lineNum, whileCondition);	
-					currentBlock.push("while-loop");
-					theTree.addNode(stateFound.peek(), whileState);
-					storeTree = new StateTree(theTree);
-					stateFound.push(whileState);
-					stateFoundStore = stateFound;
-					currentBlockStore = currentBlock;
-					stateFound.clear();
-					currentBlock.clear();
+				Node whileState = new Node(m.group(1), line, theTree.root, true, charStart, charEnd, lineNum, new Event("unconditional"));	
+				whileStateName = m.group(1);
+				
+				addNodeBuildTree(whileState, theTree.root, false);
+				appendStateAndTransitions();
+				appendPlantUML();
 
-				}
+				result.append(stateDiagramAsString());
+				//stateFound.push(whileState);
+
+
 				result.append("state " + m.group(1) + " { " + "\n"); 
 				result.append("state \" WHILE LOOP:  " + m.group(1) + "\" as " + m.group(1) + "\n");
 				break;
