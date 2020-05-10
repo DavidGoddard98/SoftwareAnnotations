@@ -44,90 +44,17 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 	
 	final String prefix = "@start_OSM_generation", prefixRegex = prefix;
 	final String suffix = "@end_OSM_generation", suffixRegex = suffix;
-	protected static String[] transitionColors = {"#Lime", "#Gold", "#FireBrick", "#HotPink", "#DarkOrchid", "#DarkGreen"};
-	private boolean patternsInitialized = false;
-	private PatternIdentifier patternIdentifier;
+	private PatternIdentifier patternIdentifier = new PatternIdentifier();
 	
-    Pattern goodIfGuard = Pattern.compile("(if|\\}?\\s*else\\sif)\\s*\\(\\s*([a-zA-Z0-9\\s\\[\\];|&.,()!=_\\-<>+*]*)\\s*\\)\\s*(\\{?)\\s*([//]{2,}\\s*(.)*)*");
-    Pattern elseGuard = Pattern.compile("(\\}?\\s*else\\s)\\s*\\s*(\\{?)\\s*([//]{2,}\\s*(.)*)*");
-    Pattern stateEqualityGuard = Pattern.compile( "(if|\\}?\\s*else\\sif)\\s*\\(\\s*(state)\\s+\\=\\=\\s+(valid_states\\.)([a-zA-Z0-9\\s\\[\\];|&\\.,()!=_\\-<>+*]*)\\s*\\)\\s*(\\{?)\\s*([//]{2,}\\s*(.)*)*");
-    Pattern stateInequalityGuard = Pattern.compile( "(if|\\}?\\s*else\\sif)\\s*\\(\\s*(state)\\s+\\!\\=\\s+(valid_states\\.)([a-zA-Z0-9\\s\\[\\];|&\\.,()!=_\\-<>+*]*)\\s*\\)\\s*(\\{?)\\s*([//]{2,}\\s*(.)*)*");
-    //SAME LINE IF CONDITIONALS?
-
-    Pattern switchState = Pattern.compile("(switch)\\s*\\(\\s*(state)\\s*\\)\\s*\\{*([//]{2,}\\s*(.)*)*"); //switch(state) {
-    Pattern stateChange = Pattern.compile( "([\\w]*\\s+)?(state)\\s*\\=\\s*(valid_states)\\.([a-zA-Z0-9_\\-.()]+)\\s*\\;\\s*([//]{2,}\\s*(.)*)*"); //state = validStates. //group(4) =statNAme
-    Pattern closedCurl = Pattern.compile("\\}([//]{2,}\\s*(.)*)*"); //}
-    Pattern decleration = Pattern.compile( 	"([_\\.a-zA-Z0-9\\_\\(\\)])*\\s*(\\*)*(\\+)*(\\/)*(\\-)*\\s*([\\._\\-\\(\\)a-zA-Z0-9\\_\\(\\)])*\\s*\\=\\s*([\\._\\\\-\\\\(\\\\)a-zA-Z0-9\\_\\(\\)])*\\s*(\\*)*(\\+)*(\\/)*(\\-)*\\s*([\\._\\\\-\\\\(\\\\)a-zA-Z0-9\\_\\(\\)])*\\s*\\;\\s*([//]{2,}\\s*(.)*)*");
-
-    Pattern simpleMethodCall = Pattern.compile("(([\\._\\-a-zA-Z0-9]*)\\s*\\((.)*\\))\\s*\\;\\s*([//]{2,}\\s*(.)*)*"); //getCall(); OR getCall(int something, int something); //group(1) = methodCall
-    Pattern complexMethodCall = Pattern.compile( "(\\w)+\\s(\\w)+\\s*\\=\\s*(([\\._\\-a-zA-Z0-9]+)\\((.)*\\))\\s*\\;\\s*([//]{2,}\\s*(.)*)*"); // same as above but with String int getcall();//group(3) = methodcall
-    Pattern potentialCallBack = Pattern.compile("(([\\w]+)\\.([\\._\\-a-zA-Z0-9]*)\\s*\\((.)*\\))\\s*\\;\\s*([//]{2,}\\s*(.)*)*");
-    		
-    Pattern caseState = Pattern.compile( 	"(case)\\s+([a-zA-Z0-9_\\-.()]*)\\s*\\:\\s*([//]{2,}\\s*(.)*)*" ); //case aState : //group(2) = state name
-    Pattern breakRegex = Pattern.compile("(break)\\s*\\;([//]{2,}\\s*(.)*)*");  //break;
-
-    Pattern fsmComment = Pattern.compile("(^\\s*//(FSM:))", Pattern.CASE_INSENSITIVE); //FSM:
-    Pattern commentsPattern = Pattern.compile( 	"(//.*?$)|(/\\*.*?\\*/)", Pattern.MULTILINE | Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
-    Pattern whitespace = Pattern.compile("\\s*");
-
-    Pattern methodDecleration = Pattern.compile("(public|protected|private|static|\\s) +[\\w\\<\\>\\[\\]]+\\s+(\\w+) *\\([^\\)]*\\) *(\\{?|[^;])([//]{2,}\\s*(.)*)*");
-    Pattern methodDeclerationException = Pattern.compile("(public|protected|private|static|\\s+) +[\\w\\<\\>\\[\\]]+\\s+(\\w+) *\\([^\\)]*\\)\\s+[\\w]*\\s+[\\w]* *(\\{?|[^;])([//]{2,}\\s*(.)*)*");
+  
 	
-    Pattern whileLoop = Pattern.compile("while\\s*\\(([\\._\\-a-zA-Z0-9]*)\\)\\s*\\{*\\s*([//]{2,}\\s*(.)*)*"); //while (x) {
-    
 	
-	static ArrayList<String> operators = new ArrayList<String>(
-            Arrays.asList("==",
-                          "!=",
-                          ">",
-                          "<",
-                          ">=",
-                          "<="));
-	private static String negateCondition(String string) {
- 		StringBuilder negation = new StringBuilder();
- 		String tmp = "p";
- 		negation.append(string);
- 		for (int j=0; j<string.length(); j++) {
- 			String c = String.valueOf(string.charAt(j));
- 			String oldCAndNewC = tmp + c;
- 			if (operators.contains(c)) {
- 				if (c.equals(">")) {
- 					negation.replace(j, j+1, "<=");
- 					break;
- 				}
- 				else {
- 					negation.replace(j, j+1, ">=");
- 					break;
- 				}
- 			} else if (operators.contains(oldCAndNewC)) {
- 				String negatedRelation = negateRelation(oldCAndNewC);
- 				negation.replace(j-1, j+1, negatedRelation);
- 			}
- 			tmp = c;
- 		}
- 		if (negation.toString().equals(string)) { //no relational operator found
- 			if (string.contains("!")) {
-        return string.replaceAll("!", "");
-      } else {
- 			negation.insert(0, "!(");
- 			negation.append(")");
-      }
-    }
- 		return negation.toString();
-
-	}
-
- 	private static String negateRelation(String relation) {
- 		if (relation.equals("==")) return "!=";
- 		else if (relation.equals("!=")) return "==";
- 		else if (relation.equals(">=")) return "<";
- 		else  return ">";
- 	}
  	
- 	public StateMachineGenerator(StateDiagram stateDiagram, String stateSelected, int selectedLineNum) {
+ 	public StateMachineGenerator(StateDiagram stateDiagram, String stateSelected, int selectedLineNum, StringBuilder result) {
  		this.stateDiagram = stateDiagram;
  		this.stateSelected = stateSelected;
  		this.selectedLineNum = selectedLineNum;
+ 		this.stateTextDiagramHelper = stateTextDiagramHelper;
 		
 	}
  	
@@ -160,10 +87,6 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 	String whileStateName;
 	Stack<Node> stateFound;
 	Stack<String> ignoreStack;
-	Stack<Node> stateFoundStore;
-	Stack<String> currentBlockStore;
-	
-	String initialState = null;
 	StringBuilder result;
 	StateTree theTree;
 	StateTree storeTree;
@@ -177,6 +100,10 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 	boolean nextLineConditionalValidate = false;
 	boolean oneLineConditional = false;
 	boolean certainEvent = true;
+	
+	String initialState = null;
+	
+	
 	
 	
 	private void identifyPattern(String line, int lineNum, int startOfRegion, int selectionStart) throws BadLocationException, CoreException {
@@ -255,6 +182,455 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 		}
 				
 	}
+
+
+	private void normalFlow(int patternNo, String line, int lineNum, Matcher m) throws CoreException, BadLocationException {
+	
+		switch(patternNo) {
+			
+			case 0: //call back...
+				
+				if (line.contains("Systen.out.print")) break;
+				if (exitConditions.contains(m.group(1))) {
+					exitStates.add(stateFound.peek());
+				}
+				if (!stateFound.empty()) stateFound.peek().setVisible();
+				
+				
+				break;
+			case 1: //complex if guard
+				int charStart = stateDiagram.document.getLineOffset(lineNum);
+				int charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
+				 
+				
+				 Event event = new Event(m.group(2), line, charStart, charEnd, lineNum);
+				 
+				 
+				 if (m.group(1).equals("if")) {
+					 conditionalBlock = new ArrayList<Node>();
+					 
+				 } else if (!currentBlock.empty() && currentBlock.peek().equals("state-conditional")) {
+					 conditionalBlock.add(stateFound.peek());
+				 }
+				 
+				
+				
+				 certainEvent = true;
+				 if (!m.group(3).equals("{")) { //check to see if the bracket is on the next line...
+					 nextLineConditionalValidate = true;
+				 } 
+				 if (m.group(1).contains("}") && !currentBlock.empty()) {
+					 switch(currentBlock.peek()) {
+						case "state-conditional":
+							certainEvent = false;
+							stateFound.pop();
+							break;
+						case "conditional":
+							methodCalls.clear();
+							break;
+					 }
+					 currentBlock.pop();
+				 }
+				 
+				 String expression = m.group(2);
+				 if (!expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "").equals(expression)) {
+					 currentBlock.push("conditional-state");
+					 //events.push(stateReference); //the condition
+					 boolean equalityStatesFound = false;
+					 String aString = expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "equality");
+					 //STOP SELF LOOPING
+				   	 while (!equalityStatesFound) {
+				   		 
+				         if (aString.indexOf("equality") != -1) {
+				        	 
+		
+				             int index = aString.indexOf("equality");
+				        	 int anotherIndex = aString.indexOf(" ", index);
+				        	 if (anotherIndex == -1) anotherIndex = aString.length();
+				        	 String aState = aString.substring(index + 8, anotherIndex);
+				        	 if (aState.equals("")) break;
+				        	 aString = aString.substring(aString.indexOf(aState));
+				         } else equalityStatesFound = true;
+				   	 }
+					
+				 }else {
+					 currentBlock.push("conditional");
+					 events.push(event);
+				 }
+				
+						//equality state conditional
+		//			 } else if (!anotherExpression.replaceAll("(state)\\s+\\!=\\=\\s+(valid_states\\.)", "inEquality").equals(anotherExpression)) {
+		//				
+		//				 boolean inEqualityStatesFound = false;
+		//
+		//				 
+		//			   	 while (!inEqualityStatesFound) {
+		//			   		 
+		//			         if (anotherExpression.indexOf("inEquality") != -1) {
+		//			        	 
+		//
+		//			             int index = anotherExpression.indexOf("inEquality");
+		//			        	 int anotherIndex = anotherExpression.indexOf(" ", index);
+		//			        	 if (anotherIndex == -1) anotherIndex = anotherExpression.length();
+		//			        	 String aState = anotherExpression.substring(index + 8, anotherIndex);
+		//			        	 anotherExpression = anotherExpression.substring(anotherExpression.indexOf(aState));
+		//			         } else inEqualityStatesFound = true;
+		//			   	 }
+						
+				
+				 
+				 
+			
+			 
+				
+				break;
+			case 2: //else guard
+				charStart = stateDiagram.document.getLineOffset(lineNum);
+				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
+				 
+				event = new Event("unconditional", line, charStart, charEnd, lineNum);
+	
+				
+				
+				if (!currentBlock.empty() && currentBlock.peek().equals("state-conditional"))
+					conditionalBlock.add(stateFound.peek());
+				if (m.group(1).contains("}") && !currentBlock.empty()) {
+					
+					switch(currentBlock.peek()) {
+					
+						case "state-conditional":
+							certainEvent = false;
+							stateFound.pop();
+							break;
+						case "conditional":
+							methodCalls.clear();
+							break;
+					 }
+					 currentBlock.pop();
+				}
+				currentBlock.push("else-conditional");
+				
+				break;
+			case 3: //switch state
+		
+				currentBlock.push("switch-state");
+				return;
+			case 4: //state change
+				
+				if (lineNum == selectedLineNum) stateSelected = m.group(4);
+				
+				drawTree = true; //Informs that a new tree must be drawn back in diagramTextLines
+				charStart = stateDiagram.document.getLineOffset(lineNum);
+				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
+			
+				if (initialState == null) {
+					certainEvent = true;
+					initialState = m.group(4);
+					Node node = new Node(initialState, line, null, true, charStart, charEnd, lineNum, new Event(""));
+					theTree = new StateTree(node);
+					stateFound.push(node);
+					result.append("[*] -> " + initialState);
+					result.append("\n");
+	
+					break;
+					
+				} else if (afterLoopState) {
+					certainEvent = true;
+					result.append(whileStateName + " -> " + m.group(4) + " : Exit loop" + "\n");
+					Node node = new Node(m.group(4), line, null, true, charStart, charEnd, lineNum, new Event(""));
+					theTree = new StateTree(node);
+					stateFound.push(node);
+					afterLoopState = false;
+	
+					break;
+				}
+				
+				if (unConditionalState) {
+					//IF THIS IS VISIBLE
+					if (stateFound.peek().visible) {
+						String lastStateName = stateFound.peek().stateName;
+						Node newRoot = new Node(lastStateName, line, null, true, stateFound.peek().charStart, stateFound.peek().charEnd, stateFound.peek().lineNum, new Event(""));
+	
+						buildStateTree(false);
+						appendStateAndTransitions();
+						appendPlantUML();
+						result.append(stateDiagramAsString());
+						theTree = new StateTree(newRoot);
+	
+						stateFound.push(newRoot);
+						drawTree = true;
+					} else {
+						//remove last node and continue like normal;
+						theTree.removeLastNode();
+						stateFound.pop();
+						
+					}
+					unConditionalState = false;	
+				} 
+				
+				
+				if (currentBlock.empty()) {
+					
+					certainEvent = true;
+					Node node = new Node(m.group(4), line, theTree.root, false, charStart, charEnd, lineNum, new Event("unconditional"));   
+					theTree.addNode(theTree.root, node);
+					unConditionalState = true;
+					stateFound.push(node);
+					
+				} else if (!stateFound.empty() && !currentBlock.empty()) {
+					
+					
+					if (currentBlock.peek().equals("conditional")) { 
+						currentBlock.pop(); //we know the conditional is for a state 
+						currentBlock.push("state-conditional"); //therefore speicify this
+						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, events.peek());   
+						theTree.addNode(stateFound.peek(), node);
+						stateFound.push(node);
+						
+						
+					} else if (currentBlock.peek().equals("else-conditional")) {
+						currentBlock.pop(); //we know the conditional is for a state 
+						currentBlock.push("else-state-conditional"); //therefore speicify this
+						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, new Event("unconditional"));   
+						theTree.addNode(stateFound.peek(), node);
+						stateFound.push(node);
+					} else if (currentBlock.peek().equals("state-conditional")) {
+						
+						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, new Event("unconditional"));   
+						theTree.addNode(stateFound.peek(), node);
+						stateFound.push(node);
+						
+					}  else if (currentBlock.peek().equals("case-state") || currentBlock.peek().equals("while-loop") ) {
+						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, new Event(""));   
+						theTree.addNode(stateFound.peek(), node);
+						stateFound.push(node);
+						selfLoop = false;
+						
+					} 
+				} else if (!currentBlock.empty() && currentBlock.peek().equals("while-loop") ) {
+					result.append("[*] -> " + m.group(4) + "\n");
+					Node node = new Node(m.group(4), line, null, true, charStart, charEnd, lineNum , new Event("")); 
+					theTree = new StateTree(node);
+					stateFound.push(node);
+				} 
+	
+		
+				break;
+			case 5: //closed }
+				if (!currentBlock.isEmpty()) {
+					switch(currentBlock.peek()) {
+						case "state-conditional":
+							certainEvent = false;
+							stateFound.pop();
+							break;
+						case "conditional":
+							methodCalls.clear();
+							break;
+						case "else-state-conditional":
+							if (stateFound.peek().visible) {
+								conditionalBlock.add(stateFound.peek());
+								certainEvent = false;
+								if (conditionalBlock.size() > 1) {
+									for (Node conditionalBlockNode : conditionalBlock) {
+										System.out.println("ADDING NODE TO CONDITONALBLOCKNODE: " + conditionalBlockNode);
+										theTree.noLink.put(conditionalBlockNode, conditionalBlock);
+									}
+								}
+								stateFound.pop();
+							}
+							break;
+						case "while-loop":
+							afterLoopState = true;
+							buildStateTree(false);
+							appendStateAndTransitions();
+							appendPlantUML();
+	
+							result.append(stateTextDiagramHelper.stateDiagramAsString());
+							stateTextDiagramHelper.stateDiagram.textualDiagram = new HashMap<String, LinkedHashSet<String>>();
+							result.append(stateDiagramAsString());
+							result.append("}" + "\n");
+							break;
+						
+					}
+					currentBlock.pop();
+				}
+				if (!events.isEmpty()) {
+					events.pop();
+				}
+			
+	
+				
+				break;
+			case 6: //decleration
+				
+				break;
+			case 7: //simpleMethodCal
+				
+				int index = m.group(1).indexOf("(");
+				String method = m.group(1).substring(0, index);
+				if (!stateFound.empty() && declaredMethods.contains(method)){
+					
+					for (Node descendant : theTree.getAllDescendants(stateFound.peek())) {
+						descendant.action.add(new Action(m.group(1), theTree.currentIndex-1));
+					}
+				}
+				if (exitConditions!= null && exitConditions.contains(m.group(1)) && !stateFound.empty()) {
+					selfLoop = false;
+					String stateName = stateFound.peek().stateName;
+					Node currentNode = stateFound.peek();
+					result = result.append(stateName + " -down-> [*] : " + m.group(1) + "\n");
+					StateReference theState = new StateReference(stateName, currentNode.editorLine, currentNode.lineNum, currentNode.charStart, currentNode.charEnd, false);
+					appendToLists(theState, "");
+				}
+				
+			
+				
+				break;
+			case 8: //complexMethodcall
+				
+				break;
+			case 9: //case 
+				charStart = stateDiagram.document.getLineOffset(lineNum);
+				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
+				if (!currentBlock.empty() && currentBlock.peek().equals("case-state")) currentBlock.pop(); //no break inbetween
+				if (ignoreArray.contains(m.group(2))) break;
+	
+				currentBlock.push("case-state"); //we know that the case is a state...
+				stateFound.clear();
+				certainEvent = true;
+				if (m.group(2).equals("INIT")) {	
+					if( currentBlock.contains("while-loop")) selfLoop = false;
+				}
+				else {
+					result.append("state " + m.group(2) + "\n");
+					if( currentBlock.contains("while-loop")) selfLoop = true;
+				}
+				Node node = new Node(m.group(2), line, null, true, charStart, charEnd, lineNum, new Event(""));
+				theTree = new StateTree(node);
+				stateFound.push(node);
+			
+				
+				
+				break;
+			case 10:  //break regex
+				if (!currentBlock.empty()) {
+					if (currentBlock.peek() == "conditional") {
+						//probably dont need the .contains("case-state") above...
+						ignore = true;
+						ignoreStack.push("ignore");
+						break;
+						
+					
+					} else if (currentBlock.peek() == "case-state") {
+						String caseName = stateFound.firstElement().stateName;
+						Node caseNode = stateFound.firstElement();
+						if (selfLoop) {
+							StringBuilder transition = new StringBuilder();
+	
+							node = stateFound.firstElement();
+							
+							for (Node child : theTree.getChildren(node)) {
+								transition.append(negateCondition(child.event.event));
+							}
+							
+							
+							
+							if (transition.length() == 0) transition.append("No event found");
+							else {
+								transition.insert(0, '[');
+								transition.append("]");
+							}
+							if (!caseNode.action.isEmpty()) {
+								boolean toggle = true;
+								for (Action action: caseNode.action) {
+									if (action.index == caseNode.index) {
+										if (toggle) {
+											transition.append(" / ");
+											toggle = false;
+										}
+										transition.append(action.action + " ; ");
+									}
+								}
+							}
+	
+							String stateName = node.stateName;
+							if(stateName.equals("INIT")) stateName = "[*]";
+							StateReference theState = new StateReference(stateName, node.editorLine, node.lineNum, node.charStart, node.charEnd, false);
+							
+							if (!ignoreArray.contains(caseName + " -> " + caseName + " : " + transition)) {
+								result.append(caseName + " -> " + caseName + " : " + transition + "\n");
+	
+							} 
+							appendToLists(theState, "" );			
+	
+							
+							
+						}
+						methodCalls.clear();
+						buildStateTree(false);
+						appendPlantUML();
+	
+						while(currentBlock.peek() != "case-state") currentBlock.pop(); 
+						
+						currentBlock.pop();
+					}
+					
+					
+				}
+				
+				break;
+				
+				
+				
+				
+				
+				
+			case 11: //whileLoop
+				
+				currentBlock.push("while-loop");
+				selfLoop = true;
+				charStart = stateDiagram.document.getLineOffset(lineNum);
+				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
+				
+				Node whileState = new Node(m.group(1), line, theTree.root, true, charStart, charEnd, lineNum, new Event("unconditional"));	
+				whileStateName = m.group(1);
+				
+				addNodeBuildTree(whileState, theTree.root, false);
+				appendStateAndTransitions();
+				appendPlantUML();
+	
+				result.append(stateDiagramAsString());
+				//stateFound.push(whileState);
+	
+	
+				result.append("state " + m.group(1) + " { " + "\n"); 
+				result.append("state \" WHILE LOOP:  " + m.group(1) + "\" as " + m.group(1) + "\n");
+				break;
+				
+	//
+	//
+			case 12: //methodDecleration
+				
+				String methodDec = m.group(2);
+				if (!declaredMethods.contains(methodDec))
+					declaredMethods.add(methodDec);
+				
+				break;
+			
+			case 13: //method decleration exception
+	
+				methodDec = m.group(2);
+				if (!declaredMethods.contains(methodDec)) {
+					declaredMethods.add(methodDec);
+				}
+				
+				break;
+			default: 
+				System.out.println("no match found");
+		}
+	}
+	
+
 	
 	//Couldnt think of a better way of getting if-else statesments to go around the else unconditional block...
 	public void duplicateTransitions(Node from, Node to, StringBuilder transition) { 
@@ -265,9 +641,9 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 		}
 	}
 	
-	
+		
 
-	private StringBuilder buildTransitionsFromTree(StateTree theTree, boolean lastTree) {
+	private StringBuilder buildTransitionsFromTree(boolean lastTree) {
 		StringBuilder result = new StringBuilder();
 
 		ArrayList<Node> visibleStates = new ArrayList<Node>();
@@ -383,7 +759,6 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 		return result;
 	}
 	
-	
 	private void appendToLists(StateReference stateReference, String lineToIgnore) {
 		String stateName = stateReference.stateName;
 		
@@ -392,7 +767,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 		ArrayList<StateReference> stateReferences = new ArrayList<StateReference>();
 		
 		if (lineToIgnore != "" && ignoreArray.contains(lineToIgnore.trim())) return;
-		if ( ignoreArray.contains(stateName)) return;
+		if (ignoreArray.contains(stateName)) return;
 		if (stateReference.isTransition && ignoreArray.contains(stateReference.transition.leftState) || stateReference.isTransition && ignoreArray.contains(stateReference.transition.rightState)) return;
 		if (stateDiagram.stateLinkers.containsKey(stateName)) {
 
@@ -405,473 +780,16 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 		}
 	}
 	
-
-	
-	
-	private void normalFlow(int patternNo, String line, int lineNum, Matcher m) throws CoreException, BadLocationException {
-		
-		switch(patternNo) {
-			
-			case 0: //call back...
-				
-				if (line.contains("Systen.out.print")) break;
-				if (exitConditions.contains(m.group(1))) {
-					exitStates.add(stateFound.peek());
-				}
-				if (!stateFound.empty()) stateFound.peek().setVisible();
-				
-				
-				break;
-			case 1: //complex if guard
-				int charStart = stateDiagram.document.getLineOffset(lineNum);
-				int charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
-				 
-				
-				 Event event = new Event(m.group(2), line, charStart, charEnd, lineNum);
-				 
-				 
-				 if (m.group(1).equals("if")) {
-					 conditionalBlock = new ArrayList<Node>();
-					 
-				 } else if (!currentBlock.empty() && currentBlock.peek().equals("state-conditional")) {
-					 conditionalBlock.add(stateFound.peek());
-				 }
-				 
-				
-				
-				 certainEvent = true;
-				 if (!m.group(3).equals("{")) { //check to see if the bracket is on the next line...
-					 nextLineConditionalValidate = true;
-				 } 
-				 if (m.group(1).contains("}") && !currentBlock.empty()) {
-					 switch(currentBlock.peek()) {
-						case "state-conditional":
-							certainEvent = false;
-							stateFound.pop();
-							break;
-						case "conditional":
-							methodCalls.clear();
-							break;
-					 }
-					 currentBlock.pop();
-				 }
-				 
-				 String expression = m.group(2);
-				 if (!expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "").equals(expression)) {
-					 currentBlock.push("conditional-state");
-					 //events.push(stateReference); //the condition
-					 boolean equalityStatesFound = false;
-					 String aString = expression.replaceAll("(state)\\s+\\=\\=\\s+(valid_states\\.)", "equality");
-					 //STOP SELF LOOPING
-				   	 while (!equalityStatesFound) {
-				   		 
-				         if (aString.indexOf("equality") != -1) {
-				        	 
-		
-				             int index = aString.indexOf("equality");
-				        	 int anotherIndex = aString.indexOf(" ", index);
-				        	 if (anotherIndex == -1) anotherIndex = aString.length();
-				        	 String aState = aString.substring(index + 8, anotherIndex);
-				        	 if (aState.equals("")) break;
-				        	 aString = aString.substring(aString.indexOf(aState));
-				         } else equalityStatesFound = true;
-				   	 }
-					
-				 }else {
-					 currentBlock.push("conditional");
-					 events.push(event);
-				 }
-				
-						//equality state conditional
-		//			 } else if (!anotherExpression.replaceAll("(state)\\s+\\!=\\=\\s+(valid_states\\.)", "inEquality").equals(anotherExpression)) {
-		//				
-		//				 boolean inEqualityStatesFound = false;
-		//
-		//				 
-		//			   	 while (!inEqualityStatesFound) {
-		//			   		 
-		//			         if (anotherExpression.indexOf("inEquality") != -1) {
-		//			        	 
-		//
-		//			             int index = anotherExpression.indexOf("inEquality");
-		//			        	 int anotherIndex = anotherExpression.indexOf(" ", index);
-		//			        	 if (anotherIndex == -1) anotherIndex = anotherExpression.length();
-		//			        	 String aState = anotherExpression.substring(index + 8, anotherIndex);
-		//			        	 anotherExpression = anotherExpression.substring(anotherExpression.indexOf(aState));
-		//			         } else inEqualityStatesFound = true;
-		//			   	 }
-						
-				
-				 
-				 
-			
-			 
-				
-				break;
-			case 2: //else guard
-				charStart = stateDiagram.document.getLineOffset(lineNum);
-				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
-				 
-				event = new Event("unconditional", line, charStart, charEnd, lineNum);
-
-				
-				
-				if (!currentBlock.empty() && currentBlock.peek().equals("state-conditional"))
-					conditionalBlock.add(stateFound.peek());
-				if (m.group(1).contains("}") && !currentBlock.empty()) {
-					
-					switch(currentBlock.peek()) {
-					
-						case "state-conditional":
-							certainEvent = false;
-							stateFound.pop();
-							break;
-						case "conditional":
-							methodCalls.clear();
-							break;
-					 }
-					 currentBlock.pop();
-				}
-				currentBlock.push("else-conditional");
-				
-				break;
-			case 3: //switch state
-		
-				currentBlock.push("switch-state");
-				return;
-			case 4: //state change
-				
-				if (lineNum == selectedLineNum) stateSelected = m.group(4);
-				
-				drawTree = true; //Informs that a new tree must be drawn back in diagramTextLines
-				charStart = stateDiagram.document.getLineOffset(lineNum);
-				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
-			
-				if (initialState == null) {
-					certainEvent = true;
-					initialState = m.group(4);
-					Node node = new Node(initialState, line, null, true, charStart, charEnd, lineNum, new Event(""));
-					theTree = new StateTree(node);
-					stateFound.push(node);
-					result.append("[*] -> " + initialState);
-					result.append("\n");
-
-					break;
-					
-				} else if (afterLoopState) {
-					certainEvent = true;
-					result.append(whileStateName + " -> " + m.group(4) + " : Exit loop" + "\n");
-					Node node = new Node(m.group(4), line, null, true, charStart, charEnd, lineNum, new Event(""));
-					theTree = new StateTree(node);
-					stateFound.push(node);
-					afterLoopState = false;
-
-					break;
-				}
-				
-				if (unConditionalState) {
-					//IF THIS IS VISIBLE
-					if (stateFound.peek().visible) {
-						String lastStateName = stateFound.peek().stateName;
-						Node newRoot = new Node(lastStateName, line, null, true, stateFound.peek().charStart, stateFound.peek().charEnd, stateFound.peek().lineNum, new Event(""));
-
-						buildStateTree(false);
-						appendStateAndTransitions();
-						appendPlantUML();
-						result.append(stateDiagramAsString());
-						theTree = new StateTree(newRoot);
-
-						stateFound.push(newRoot);
-						drawTree = true;
-					} else {
-						//remove last node and continue like normal;
-						theTree.removeLastNode();
-						stateFound.pop();
-						
-					}
-					unConditionalState = false;	
-				} 
-				
-				
-				if (currentBlock.empty()) {
-					
-					certainEvent = true;
-					Node node = new Node(m.group(4), line, theTree.root, false, charStart, charEnd, lineNum, new Event("unconditional"));   
-					theTree.addNode(theTree.root, node);
-					unConditionalState = true;
-					stateFound.push(node);
-					
-				} else if (!stateFound.empty() && !currentBlock.empty()) {
-					
-					
-					if (currentBlock.peek().equals("conditional")) { 
-						currentBlock.pop(); //we know the conditional is for a state 
-						currentBlock.push("state-conditional"); //therefore speicify this
-						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, events.peek());   
-						theTree.addNode(stateFound.peek(), node);
-						stateFound.push(node);
-						
-						
-					} else if (currentBlock.peek().equals("else-conditional")) {
-						currentBlock.pop(); //we know the conditional is for a state 
-						currentBlock.push("else-state-conditional"); //therefore speicify this
-						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, new Event("unconditional"));   
-						theTree.addNode(stateFound.peek(), node);
-						stateFound.push(node);
-					} else if (currentBlock.peek().equals("state-conditional")) {
-						
-						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, new Event("unconditional"));   
-						theTree.addNode(stateFound.peek(), node);
-						stateFound.push(node);
-						
-					}  else if (currentBlock.peek().equals("case-state") || currentBlock.peek().equals("while-loop") ) {
-						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, new Event(""));   
-						theTree.addNode(stateFound.peek(), node);
-						stateFound.push(node);
-						selfLoop = false;
-						
-					} 
-				} else if (!currentBlock.empty() && currentBlock.peek().equals("while-loop") ) {
-					result.append("[*] -> " + m.group(4) + "\n");
-					Node node = new Node(m.group(4), line, null, true, charStart, charEnd, lineNum , new Event("")); 
-					theTree = new StateTree(node);
-					stateFound.push(node);
-				} 
-
-		
-				break;
-			case 5: //closed }
-				if (!currentBlock.isEmpty()) {
-					switch(currentBlock.peek()) {
-						case "state-conditional":
-							certainEvent = false;
-							stateFound.pop();
-							break;
-						case "conditional":
-							methodCalls.clear();
-							break;
-						case "else-state-conditional":
-							if (stateFound.peek().visible) {
-								conditionalBlock.add(stateFound.peek());
-								certainEvent = false;
-								if (conditionalBlock.size() > 1) {
-									for (Node conditionalBlockNode : conditionalBlock) {
-										System.out.println("ADDING NODE TO CONDITONALBLOCKNODE: " + conditionalBlockNode);
-										theTree.noLink.put(conditionalBlockNode, conditionalBlock);
-									}
-								}
-								stateFound.pop();
-							}
-							break;
-						case "while-loop":
-							afterLoopState = true;
-							buildStateTree(false);
-							appendStateAndTransitions();
-							appendPlantUML();
-
-							result.append(stateTextDiagramHelper.stateDiagramAsString());
-							stateTextDiagramHelper.stateDiagram.textualDiagram = new HashMap<String, LinkedHashSet<String>>();
-							result.append(stateDiagramAsString());
-							result.append("}" + "\n");
-							break;
-						
-					}
-					currentBlock.pop();
-				}
-				if (!events.isEmpty()) {
-					events.pop();
-				}
-			
-
-				
-				break;
-			case 6: //decleration
-				
-				break;
-			case 7: //simpleMethodCal
-				
-				int index = m.group(1).indexOf("(");
-				String method = m.group(1).substring(0, index);
-				if (!stateFound.empty() && declaredMethods.contains(method)){
-					
-					for (Node descendant : theTree.getAllDescendants(stateFound.peek())) {
-						descendant.action.add(new Action(m.group(1), theTree.currentIndex-1));
-					}
-				}
-				if (exitConditions!= null && exitConditions.contains(m.group(1)) && !stateFound.empty()) {
-					selfLoop = false;
-					String stateName = stateFound.peek().stateName;
-					Node currentNode = stateFound.peek();
-					result = result.append(stateName + " -down-> [*] : " + m.group(1) + "\n");
-					StateReference theState = new StateReference(stateName, currentNode.editorLine, currentNode.lineNum, currentNode.charStart, currentNode.charEnd, false);
-					appendToLists(theState, "");
-				}
-				
-			
-				
-				break;
-			case 8: //complexMethodcall
-				
-				break;
-			case 9: //case 
-				charStart = stateDiagram.document.getLineOffset(lineNum);
-				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
-				if (!currentBlock.empty() && currentBlock.peek().equals("case-state")) currentBlock.pop(); //no break inbetween
-				if (ignoreArray.contains(m.group(2))) break;
-
-				currentBlock.push("case-state"); //we know that the case is a state...
-				stateFound.clear();
-				certainEvent = true;
-				if (m.group(2).equals("INIT")) {	
-					if( currentBlock.contains("while-loop")) selfLoop = false;
-				}
-				else {
-					result.append("state " + m.group(2) + "\n");
-					if( currentBlock.contains("while-loop")) selfLoop = true;
-				}
-				Node node = new Node(m.group(2), line, null, true, charStart, charEnd, lineNum, new Event(""));
-				theTree = new StateTree(node);
-				stateFound.push(node);
-			
-				
-				
-				break;
-			case 10:  //break regex
-				if (!currentBlock.empty()) {
-					if (currentBlock.peek() == "conditional") {
-						//probably dont need the .contains("case-state") above...
-						ignore = true;
-						ignoreStack.push("ignore");
-						break;
-						
-					
-					} else if (currentBlock.peek() == "case-state") {
-						String caseName = stateFound.firstElement().stateName;
-						Node caseNode = stateFound.firstElement();
-						if (selfLoop) {
-							StringBuilder transition = new StringBuilder();
-	
-							node = stateFound.firstElement();
-							
-							for (Node child : theTree.getChildren(node)) {
-								transition.append(negateCondition(child.event.event));
-							}
-							
-							
-							
-							if (transition.length() == 0) transition.append("No event found");
-							else {
-								transition.insert(0, '[');
-								transition.append("]");
-							}
-							if (!caseNode.action.isEmpty()) {
-								boolean toggle = true;
-								for (Action action: caseNode.action) {
-									if (action.index == caseNode.index) {
-										if (toggle) {
-											transition.append(" / ");
-											toggle = false;
-										}
-										transition.append(action.action + " ; ");
-									}
-								}
-							}
-	
-							String stateName = node.stateName;
-							if(stateName.equals("INIT")) stateName = "[*]";
-							StateReference theState = new StateReference(stateName, node.editorLine, node.lineNum, node.charStart, node.charEnd, false);
-							
-							if (!ignoreArray.contains(caseName + " -> " + caseName + " : " + transition)) {
-								result.append(caseName + " -> " + caseName + " : " + transition + "\n");
-	
-							} 
-							appendToLists(theState, "");			
-	
-							
-							
-						}
-						methodCalls.clear();
-						buildStateTree(false);
-						appendPlantUML();
-
-						while(currentBlock.peek() != "case-state") currentBlock.pop(); 
-						
-						currentBlock.pop();
-					}
-					
-					
-				}
-				
-				break;
-				
-				
-				
-				
-				
-				
-			case 11: //whileLoop
-				
-				currentBlock.push("while-loop");
-				selfLoop = true;
-				charStart = stateDiagram.document.getLineOffset(lineNum);
-				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
-				
-				Node whileState = new Node(m.group(1), line, theTree.root, true, charStart, charEnd, lineNum, new Event("unconditional"));	
-				whileStateName = m.group(1);
-				
-				addNodeBuildTree(whileState, theTree.root, false);
-				appendStateAndTransitions();
-				appendPlantUML();
-
-				result.append(stateDiagramAsString());
-				//stateFound.push(whileState);
-
-
-				result.append("state " + m.group(1) + " { " + "\n"); 
-				result.append("state \" WHILE LOOP:  " + m.group(1) + "\" as " + m.group(1) + "\n");
-				break;
-				
-//
-//	
-			case 12: //methodDecleration
-				
-				String methodDec = m.group(2);
-				if (!declaredMethods.contains(methodDec))
-					declaredMethods.add(methodDec);
-				
-				break;
-			
-			case 13: //method decleration exception
-
-				methodDec = m.group(2);
-				if (!declaredMethods.contains(methodDec)) {
-					declaredMethods.add(methodDec);
-				}
-				
-				break;
-			default: 
-				System.out.println("no match found");
-			}
-	}
-	
 	
 	private void appendPlantUML() throws CoreException {
-		
 		result.append(stateTextDiagramHelper.stateDiagramAsString());
 		stateTextDiagramHelper.stateDiagram.clearStorage();
-
 	}
 	
-
-	
 	private void buildStateTree(boolean lastTree)  {
-		
-		result.append(buildTransitionsFromTree(theTree, lastTree));
-		
+		result.append(buildTransitionsFromTree(lastTree));
 		drawTree = false;
 		stateFound.clear();
-		
-		
 	}
 	
 	private void addNodeBuildTree(Node nodeToAdd, Node nodeToAddNodeTo, boolean lastTree) {
@@ -879,30 +797,6 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 		buildStateTree(lastTree);
 
 	}
-	private void initializePatterns() {
-		patternIdentifier = new PatternIdentifier();
-		patternIdentifier.add(potentialCallBack, 0);
-		patternIdentifier.add(goodIfGuard, 1);
-		patternIdentifier.add(elseGuard, 2);
-		patternIdentifier.add(switchState, 3);
-		patternIdentifier.add(stateChange, 4);
-		patternIdentifier.add(closedCurl, 5);
-		
-		patternIdentifier.add(decleration, 6);
-		patternIdentifier.add(simpleMethodCall, 7);
-		patternIdentifier.add(complexMethodCall, 8);
-		
-		patternIdentifier.add(caseState, 9);
-		patternIdentifier.add(breakRegex, 10);
-		patternIdentifier.add(whileLoop, 11);
-		
-		//NOT BEEN TESTED
-		patternIdentifier.add(methodDecleration, 12);
-		patternIdentifier.add(methodDeclerationException, 13);
-		
-		patternIdentifier.add(fsmComment, 14);
-	}
-	
 
 	public StringBuilder getDiagramTextLines(IDocument document, final int selectionStart,
 			final Map<String, Object> markerAttributes, IEditorInput editorInput) {
@@ -925,7 +819,6 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 		result = new StringBuilder();
 		events = new Stack<Event>();
 		ignoreStack = new Stack<String>();
-		initialState = null;
 		declaredMethods = new ArrayList<String>();
 		ignoreArray = new ArrayList<String>();
 		methodCalls = new ArrayList<String>();
@@ -936,15 +829,9 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 		oneLineConditional = false;
 		selfLoop = false;
 		exitConditions = new ArrayList<String>();
-		stateFoundStore = new Stack<Node>();
-		currentBlockStore = new Stack<String>();
-		
+		initialState = null;
 		//Initialize pattern store
-		if(!patternsInitialized) {
-			initializePatterns();
-			patternsInitialized = true;
-
-		}
+		
 		result.append("hide empty description" + "\n");
 		result.append("skinparam maxmessagesize 200" + "\n");
 		
@@ -1018,15 +905,6 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 		}
 		return null;
 	}
-	
-	
-	
-	
-	
-	
-	
-
-	
 	
 	
 	/**
@@ -1358,47 +1236,6 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 	}
 
 }
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
 	
 		

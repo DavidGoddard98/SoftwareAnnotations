@@ -4,6 +4,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Stack;
 
+import plantuml.statemachine.generation.StateTextDiagramHelper;
+import utils.StateTree.TransitionInformation;
+
 public class StateTree {
 	
 	public ArrayList<Node> nodes;
@@ -21,12 +24,7 @@ public class StateTree {
 		links.put(root, new ArrayList<Node>());
 		this.root = root;
 	}
-	public StateTree(StateTree copy) {
-		this.nodes = copy.nodes;
-		this.links = copy.links;
-		this.noLink = copy.noLink;
-		this.root = copy.root;
-	}
+	
 		
 	public class TransitionInformation {
 			
@@ -231,8 +229,7 @@ public class StateTree {
 		}
 		return "false";
 	}
-	
-	
+		
 		           
 }
 		

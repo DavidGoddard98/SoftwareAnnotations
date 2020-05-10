@@ -2,6 +2,7 @@
 package plantuml.statemachine.generation;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -54,7 +55,57 @@ public class StateTextDiagramHelper  {
 		this.plantMarkerKey = plantMarkerKey;
 	}
 	
+	private static ArrayList<String> operators = new ArrayList<String>(
+            Arrays.asList("==",
+                          "!=",
+                          ">",
+                          "<",
+                          ">=",
+                          "<=")
+    );
+	
+	public static String negateCondition(String string) {
+ 		StringBuilder negation = new StringBuilder();
+ 		String tmp = "p";
+ 		negation.append(string);
+ 		for (int j=0; j<string.length(); j++) {
+ 			String c = String.valueOf(string.charAt(j));
+ 			String oldCAndNewC = tmp + c;
+ 			if (operators.contains(c)) {
+ 				if (c.equals(">")) {
+ 					negation.replace(j, j+1, "<=");
+ 					break;
+ 				}
+ 				else {
+ 					negation.replace(j, j+1, ">=");
+ 					break;
+ 				}
+ 			} else if (operators.contains(oldCAndNewC)) {
+ 				String negatedRelation = negateRelation(oldCAndNewC);
+ 				negation.replace(j-1, j+1, negatedRelation);
+ 			}
+ 			tmp = c;
+ 		}
+ 		if (negation.toString().equals(string)) { //no relational operator found
+ 			if (string.contains("!")) {
+        return string.replaceAll("!", "");
+      } else {
+ 			negation.insert(0, "!(");
+ 			negation.append(")");
+      }
+    }
+ 		return negation.toString();
 
+	}
+
+ 	private static String negateRelation(String relation) {
+ 		if (relation.equals("==")) return "!=";
+ 		else if (relation.equals("!=")) return "==";
+ 		else if (relation.equals(">=")) return "<";
+ 		else  return ">";
+ 	}
+ 	
+ 	
 	
 
 	/**
