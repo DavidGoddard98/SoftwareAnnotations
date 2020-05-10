@@ -64,7 +64,7 @@ public class StateDiagramTextProvider extends AbstractTextDiagramProvider {
 		IResource root = StateTextDiagramHelper.getRoot(editorInput);
 		getStateTextDiagramHelper().removeHighlights(root);
 		
-		return getOSMGenerator().getDiagramTextLines(document, selectionStart, markerAttributes, editorInput);
+		return getOSMGenerator().getDiagramTextLines(document, selectionStart, editorInput);
 //		
 	}
 	

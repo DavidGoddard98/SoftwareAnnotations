@@ -27,6 +27,8 @@ import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IFileEditorInput;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.PlatformUI;
 
 import plantuml.statemachine.generation.StateDiagram;
 import plantuml.statemachine.generation.PatternIdentifier.RegexInfo;
@@ -798,10 +800,9 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 
 	}
 
-	public StringBuilder getDiagramTextLines(IDocument document, final int selectionStart,
-			final Map<String, Object> markerAttributes, IEditorInput editorInput) {
+	public StringBuilder getDiagramTextLines(IDocument document, final int selectionStart, IEditorInput editorInput) {
 		final boolean includeStart = prefix.startsWith("@"), includeEnd = suffix.startsWith("@");
-
+		IWorkbench workspace = PlatformUI.getWorkbench();
 
 		final FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
 		IPath path = ((IFileEditorInput) editorInput).getFile().getFullPath();
@@ -891,7 +892,6 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					
 				}
 					
-				markerAttributes.put(IMarker.CHAR_START, start.getOffset());
 				return result;
 			
 			}

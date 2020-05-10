@@ -448,12 +448,12 @@ public class StateTextDiagramHelper  {
 	}
 	
 	//Link from the editor to the diagram for states
-	protected String forwardStateLink(String stateName) {
+	public String forwardStateLink(String stateName) {
 		return "state " + stateName + " #Cyan";
 	}
 
 	//Link from the editor to the diagram for transitions
-	protected String forwardTransitionLink(String selectedLine) {
+	public String forwardTransitionLink(String selectedLine) {
 		String colorTransition = "";
 		int indexOfArrow = selectedLine.indexOf("-");
 		String theArrow = selectedLine.substring(indexOfArrow+1, indexOfArrow +2);
