@@ -31,7 +31,7 @@ public class StateDiagram  {
 	protected String className;
 	protected int colorCounter; //used to progressively iterate through the above arrays.
 	
-	StateDiagram(FindReplaceDocumentAdapter finder, IDocument document, IResource root, IPath path) {
+	public StateDiagram(FindReplaceDocumentAdapter finder, IDocument document, IResource root, IPath path) {
 		this.stateLinkers = new HashMap<String, ArrayList<StateReference>>();
 		this.transitionStateReferences  = new HashMap<String, ArrayList<StateReference>>();
 		this.textualDiagram = new HashMap<String, LinkedHashSet<String>> (); 

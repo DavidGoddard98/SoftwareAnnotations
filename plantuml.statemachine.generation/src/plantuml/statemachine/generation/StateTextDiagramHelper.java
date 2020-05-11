@@ -72,17 +72,18 @@ public class StateTextDiagramHelper  {
  			String c = String.valueOf(string.charAt(j));
  			String oldCAndNewC = tmp + c;
  			if (operators.contains(c)) {
- 				if (c.equals(">")) {
+ 				if (c.equals(">") && !(String.valueOf(string.charAt(j+1)).equals("="))) {
  					negation.replace(j, j+1, "<=");
  					break;
  				}
- 				else {
+ 				else if (c.equals("<") && !(String.valueOf(string.charAt(j+1)).equals("="))) {
  					negation.replace(j, j+1, ">=");
  					break;
  				}
  			} else if (operators.contains(oldCAndNewC)) {
  				String negatedRelation = negateRelation(oldCAndNewC);
  				negation.replace(j-1, j+1, negatedRelation);
+ 				
  			}
  			tmp = c;
  		}
@@ -811,7 +812,7 @@ public class StateTextDiagramHelper  {
 	
 	
 	//Clears all of the highlights in the editor
-	protected void removeHighlights(IResource resource) {
+	public void removeHighlights(IResource resource) {
 		try {
 			IMarker[] markers = resource.findMarkers("FSM.State.Highlight", true, IResource.DEPTH_INFINITE);
 			for (IMarker m : markers) {
@@ -835,7 +836,7 @@ public class StateTextDiagramHelper  {
 	 * @param editorInput  - the active editor
 	 * @return - IResource root (used for marker creation primarily)
 	 */
-	protected static IResource getRoot(IEditorInput editorInput) { 
+	public static IResource getRoot(IEditorInput editorInput) { 
 		IPath path = ((IFileEditorInput) editorInput).getFile().getFullPath();
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot wsRoot = workspace.getRoot();
