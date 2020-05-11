@@ -1,5 +1,6 @@
 package testing;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashSet;
@@ -264,6 +265,31 @@ public class StateTextDiagramHelperTest {
 		
 		assertTrue("State markers removed", markers.length == 0);
 
+	}
+	
+	@Test
+	public void checkStateDescriptorRemovesFSMLower() {
+		String fsmLine = "//fsm: State1 -> State2";
+		String expected = "State1 -> State2";
+		
+		assertEquals(expected, StateTextDiagramHelper.stateDescriptor(fsmLine));
+	
+	}
+	
+	@Test
+	public void checkStateDescriptorRemovesFSMUpper() {
+		String fsmLine = "//FSM: State1 -> State2";
+		String expected = "State1 -> State2";
+		
+		assertEquals(expected, StateTextDiagramHelper.stateDescriptor(fsmLine));
+	
+	}
+	
+	@Test
+	public void checkStateDescriptorReturnsNullIfNotFSM() {
+		String fsmLine = "State1 -> State2";
+		
+		assertNull(StateTextDiagramHelper.stateDescriptor(fsmLine));
 	}
 	
 	

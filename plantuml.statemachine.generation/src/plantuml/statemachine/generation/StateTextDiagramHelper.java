@@ -120,7 +120,7 @@ public class StateTextDiagramHelper  {
 	 * @param 	String - the line as seen in the editor
 	 * @return	String - null if the line is not a diagram descriptor, else return the line without the '//FSM:'
 	 */
-	protected static String stateDescriptor(String line) {
+	public static String stateDescriptor(String line) {
 		
 	    String theLine = line.replaceAll("\\s+", "").toLowerCase();
 	    
