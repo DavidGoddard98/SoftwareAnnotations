@@ -18,7 +18,7 @@ public class StateDiagram  {
 	protected HashMap<String, ArrayList<StateReference>> stateLinkers; //stores the information of all the descriptive lines including charStart, charEnd, linenums ect.
 	HashMap<String, ArrayList<StateReference>>transitionStateReferences; //filters the map above and only stores the information of states only referenced in transitions
 
-	protected HashMap<String, LinkedHashSet<String>> textualDiagram; //a map of strings that will eventually make up the string sent to plantuml
+	public HashMap<String, LinkedHashSet<String>> textualDiagram; //a map of strings that will eventually make up the string sent to plantuml
 	protected ArrayList<String> addedTransitions; //a list of transitions already added - prevents duplicates occuring in diagram
 	protected ArrayList<String> actualStates; //states that are not only referenced in transitions..i.e 'State8 : a state'
 	
@@ -31,7 +31,7 @@ public class StateDiagram  {
 	protected String className;
 	protected int colorCounter; //used to progressively iterate through the above arrays.
 	
-	StateDiagram(FindReplaceDocumentAdapter finder, IDocument document, IResource root, IPath path) {
+	public StateDiagram(FindReplaceDocumentAdapter finder, IDocument document, IResource root, IPath path) {
 		this.stateLinkers = new HashMap<String, ArrayList<StateReference>>();
 		this.transitionStateReferences  = new HashMap<String, ArrayList<StateReference>>();
 		this.textualDiagram = new HashMap<String, LinkedHashSet<String>> (); 

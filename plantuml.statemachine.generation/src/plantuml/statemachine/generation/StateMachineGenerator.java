@@ -23,12 +23,14 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.FindReplaceDocumentAdapter;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
+import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.texteditor.ITextEditor;
 
 import plantuml.statemachine.generation.StateDiagram;
 import plantuml.statemachine.generation.PatternIdentifier.RegexInfo;
@@ -836,7 +838,6 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 		result.append("hide empty description" + "\n");
 		result.append("skinparam maxmessagesize 200" + "\n");
 		
-		
 		try {
 			//The following document manipulation calculates the start/end of the descriptive region
 			// search backward and forward start and end
@@ -862,7 +863,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					final int maxLine = Math.min(document.getLineOfOffset(endOffset) + (includeEnd ? 1 : 0),
 							document.getNumberOfLines());
 					///////////////////////////////////////////////////////////////////////////////////////////
-					
+
 					
 					stateDiagram = new StateDiagram(finder, document, root, path);
 					stateDiagram2 = new StateDiagram(finder, document, root, path);

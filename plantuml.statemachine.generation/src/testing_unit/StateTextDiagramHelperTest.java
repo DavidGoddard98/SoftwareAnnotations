@@ -1,9 +1,15 @@
-package testing;
+package testing_unit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.concurrent.TimeUnit;
+
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IMarker;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -12,34 +18,44 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
+import org.eclipse.jface.text.FindReplaceDocumentAdapter;
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.editors.text.TextFileDocumentProvider;
 import org.eclipse.ui.texteditor.IDocumentProvider;
+import org.eclipse.ui.texteditor.ITextEditor;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import linkOpener.StateLinkOpener;
+import plantuml.statemachine.generation.StateDiagram;
 import plantuml.statemachine.generation.StateMachineGenerator;
 import plantuml.statemachine.generation.StateTextDiagramHelper;
 
 public class StateTextDiagramHelperTest {
+	
 	static IDocument document;
 	static IEditorInput input;
+	static IEditorPart editor;
 	static String className;
 	static StateMachineGenerator stateMachineGen;
 	static StateTextDiagramHelper stateTextDiagramHelper;
-	@BeforeClass
-	public static void createEnvironment() {
+	static StateDiagram stateDiagram;
+	static IResource root;
+	
+	@Before
+	public void createEnvironment() {
 		//		IWorkbench workspace = PlatformUI.getWorkbench();
 
-		stateMachineGen = new StateMachineGenerator();
-		stateTextDiagramHelper = new StateTextDiagramHelper();
+		
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot wsRoot = workspace.getRoot();
 		className = "ExampleClass.java";
@@ -49,19 +65,37 @@ public class StateTextDiagramHelperTest {
 		IWorkbench wb = PlatformUI.getWorkbench();
 		IWorkbenchWindow window = wb.getActiveWorkbenchWindow();
 		IWorkbenchPage page = window.getActivePage();
-		IEditorPart editor = page.getActiveEditor();
+		editor = page.getActiveEditor();
 		input = editor.getEditorInput();
-//		
+		
+		stateMachineGen = new StateMachineGenerator();
+		HashSet<String> plantMarkerKey = new HashSet<String>();
+
+		
+		
+	
 		try {
 			IDocumentProvider provider = new TextFileDocumentProvider();
 			provider.connect(file);
 			document = provider.getDocument(file);
+			FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
+			IEditorInput editorInput = editor.getEditorInput();
+			root = StateTextDiagramHelper.getRoot(editorInput);
+			IPath path = ((IFileEditorInput) editorInput).getFile().getFullPath();
+
+			stateDiagram = new StateDiagram(finder, document, root, path);
+			stateTextDiagramHelper = new StateTextDiagramHelper(stateDiagram, "", 0, plantMarkerKey);
+
 			System.out.println(document.get());
 		} catch (CoreException e) {
 			e.printStackTrace();
 		} 
 	}
 	
+	@Test 
+	public void checkRootFound() {
+		
+	}
 	
 	///////////////////////////////////////STATES///////////////////////////////////////
 	@Test
@@ -101,6 +135,7 @@ public class StateTextDiagramHelperTest {
 		assertTrue("state link appended in []", result.toString().contains(expected));
 		
 	}
+	
 	
 	//////////////////////////////////TRANSITIONS///////////////////////////////////////////////////
 	
@@ -147,33 +182,92 @@ public class StateTextDiagramHelperTest {
 	
 	@Test
 	public void checkNegateEquality() {
-		
+		String stringToNegate = "a == b";
+		String expected = "a != b";
+		assertEquals(expected, stateTextDiagramHelper.negateCondition(stringToNegate));
 	}
 	
 	@Test
 	public void checkNegateInequality() {
-		
+		String stringToNegate = "a != b";
+		String expected = "a == b";
+		assertEquals(expected, stateTextDiagramHelper.negateCondition(stringToNegate));
 	}
 	
 	@Test
 	public void checkNegateGreaterEqualsTo() {
-		
+		String stringToNegate = "a >= b";
+		String expected = "a < b";
+		assertEquals(expected, stateTextDiagramHelper.negateCondition(stringToNegate));
 	}
 	
 	@Test
 	public void checkNegateLessEqualsTo() {
-		
-	}
-	
-	@Test
-	public void checkNegateLessThan() {
-		
+		String stringToNegate = "a <= b";
+		String expected = "a > b";
+		assertEquals(expected, stateTextDiagramHelper.negateCondition(stringToNegate));
 	}
 	
 	@Test
 	public void checkNegateGreaterThan() {
-		
+		String stringToNegate = "a > b";
+		String expected = "a <= b";
+		assertEquals(expected, stateTextDiagramHelper.negateCondition(stringToNegate));
 	}
+	
+	@Test
+	public void checkNegateLessThan() {
+		String stringToNegate = "a < b";
+		String expected = "a >= b";
+		assertEquals(expected, stateTextDiagramHelper.negateCondition(stringToNegate));
+	}
+	
+	///////////////////////////////////////////Miselanious Tests///////////////////////////////////////////
+	
+	@Test
+	public void checkHighlightsAreRemovedIfJustState() throws CoreException {
+		int selStart = 87;
+		stateMachineGen.getDiagramTextLines(document, selStart, input);
+		IMarker[] markers = root.findMarkers("FSM.State.Highlight", true, IResource.DEPTH_INFINITE);
+		System.out.println(markers.length);
+		
+		stateTextDiagramHelper.removeHighlights(root);
+		markers = root.findMarkers("FSM.State.Highlight", true, IResource.DEPTH_INFINITE);
+
+		assertTrue("State markers removed", markers.length == 0);
+	
+	}
+	
+	@Test
+	public void checkHighlightsAreRemovedIfJustTransition() throws CoreException {
+		int selStart = 119;
+		stateMachineGen.getDiagramTextLines(document, selStart, input);
+		IMarker[] markers = root.findMarkers("FSM.Transition.Highlight_1", true, IResource.DEPTH_INFINITE);
+		System.out.println(markers.length);
+		
+		stateTextDiagramHelper.removeHighlights(root);
+		markers = root.findMarkers("FSM.Transition.Highlight_1", true, IResource.DEPTH_INFINITE);
+		assertTrue("State markers removed", markers.length == 0);
+	}
+	
+	@Test
+	public void checkHighlightsAreRemovedIfStateAndTransition() throws CoreException {
+		int selStart = 87;
+		stateMachineGen.getDiagramTextLines(document, selStart, input);
+		selStart = 119;
+		stateMachineGen.getDiagramTextLines(document, selStart, input);
+		
+		IMarker[] markers = root.findMarkers("FSM.Transition.Highlight_1", true, IResource.DEPTH_INFINITE);
+		System.out.println(markers.length);
+		
+		stateTextDiagramHelper.removeHighlights(root);
+		markers = root.findMarkers("FSM.Transition.Highlight_1", true, IResource.DEPTH_INFINITE);
+		
+		assertTrue("State markers removed", markers.length == 0);
+
+	}
+	
+	
 	
 	///////////////////////////////TEST DATA STORES////////////////////////////////////////////////
 	

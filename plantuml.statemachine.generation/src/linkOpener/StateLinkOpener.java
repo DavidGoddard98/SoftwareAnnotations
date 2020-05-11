@@ -45,9 +45,11 @@ public class StateLinkOpener implements ILinkOpener {
 	 * are highlighted - with this also being reflected in the diagram.
 	 * @param link - see above
 	 */
-	private void linkBackState(String link) {
+	public static void linkBackState(String link) {
 		try {
-			
+			System.out.println(link);
+			System.out.println();
+			System.out.println();
 			String linkToArray[] = link.split("#");
 		    String fileName = linkToArray[0];
 	    	int linkLineNum = Integer.parseInt(linkToArray[3]) + 1;
@@ -59,10 +61,7 @@ public class StateLinkOpener implements ILinkOpener {
 	        
 	        //find the FSM.MARKERS for the editor that relates to the diagram currently opened
 	    	IMarker[] markers = resource.findMarkers("FSM.MARKER", true, IResource.DEPTH_INFINITE);
-	    	System.out.println();
-	    	System.out.println();
-	    	System.out.println();
-	    	System.out.println("NUM MARKERS" + markers.length);
+	    	
 	    	//Loops through FSM markers and checks to see if any relate to the link that was clicked
 	    	for (IMarker m : markers) {
 	    		
@@ -110,7 +109,7 @@ public class StateLinkOpener implements ILinkOpener {
 	 * @param charStart - the firstChar of the matched marker
 	 * @return - IMarker - the marker to be opened
 	 */
-	private IMarker createCursorMarker(IResource root, int markerLine, String path, int charStart) throws CoreException {
+	private static IMarker createCursorMarker(IResource root, int markerLine, String path, int charStart) throws CoreException {
 		IMarker marker = root.createMarker("FSM.MARKER");
 		marker.setAttribute(IMarker.MESSAGE, "");
 		marker.setAttribute(IMarker.LINE_NUMBER, markerLine);
