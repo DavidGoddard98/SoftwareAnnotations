@@ -1,4 +1,4 @@
-package testing;
+
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashSet;
