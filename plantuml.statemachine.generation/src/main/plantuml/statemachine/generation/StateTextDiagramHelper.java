@@ -536,7 +536,7 @@ public class StateTextDiagramHelper  {
 	
 	
 	//A key is created for every diagram text line and if it doesnt exist then a marker of that line and the relevant positions is created.
-	protected void createKey(StateReference stateReference) throws CoreException {
+	public void createKey(StateReference stateReference) throws CoreException {
 		
 		String theLine = stateReference.editorLine;
 		int lineNum = stateReference.lineNum;

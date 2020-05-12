@@ -19,10 +19,10 @@ public class Node {
 	public Event event;
 	public ArrayList<Action> action;
 
-	public Node(String stateName, String editorLine, Node parent, boolean visible, int charStart, int charEnd, int lineNum, Event event) {
+	public Node(String stateName, String editorLine, boolean visible, int charStart, int charEnd, int lineNum, Event event) {
 		this.stateName = stateName;
 		this.editorLine = editorLine;
-		this.parent = parent;
+		this.parent = null;
 		this.visible = visible;
 		this.index = 0;
 		this.action = new ArrayList<Action>();
@@ -38,6 +38,10 @@ public class Node {
 	
 	public void setVisible() {
 		this.visible = true;
+	}
+	
+	public void setParent(Node parent) {
+		this.parent = parent;
 	}
 
 	@Override

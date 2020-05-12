@@ -1,3 +1,4 @@
+package plantuml.statemachine.generation;
 
 import static org.junit.Assert.assertTrue;
 
@@ -26,6 +27,8 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.editors.text.TextFileDocumentProvider;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
+import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -45,8 +48,8 @@ public class StateLinkOpenerTest {
 	static IResource root;
 	static IEditorInput editorInput;
 	
-	@BeforeClass
-	public static void createEnvironment() {
+	@Before
+	public void createEnvironment() {
 		//		IWorkbench workspace = PlatformUI.getWorkbench();
 
 		
@@ -84,6 +87,11 @@ public class StateLinkOpenerTest {
 		} catch (CoreException e) {
 			e.printStackTrace();
 		} 
+	}
+	
+	@AfterClass
+	public static void clearMarkers() {
+		stateTextDiagramHelper.removeHighlights(root);
 	}
 	
 	/*
@@ -155,7 +163,8 @@ public class StateLinkOpenerTest {
 		
 		ITextSelection sel=  (ITextSelection) ((ITextEditor) editor).getSelectionProvider().getSelection();
 		//markers are inputted with lineNum + 1, therefore take one off here
-		int lineNum = document.getLineOfOffset(sel.getOffset()) - 1;
+		int lineNum = document.getLineOfOffset(sel.getOffset()) ;
+		System.out.println("sdasdsa" + lineNum);
 		int offset = document.getLineOffset(lineNum);
 		StringBuilder result = stateMachineGen.getDiagramTextLines(document, offset, input);
 

@@ -39,55 +39,11 @@ import linkOpener.StateLinkOpener;
 import plantuml.statemachine.generation.StateDiagram;
 import plantuml.statemachine.generation.StateMachineGenerator;
 import plantuml.statemachine.generation.StateTextDiagramHelper;
+import utils.StateReference;
 
 public class StateTextDiagramHelperTest {
 	
-	static IDocument document;
-	static IEditorInput input;
-	static IEditorPart editor;
-	static String className;
-	static StateMachineGenerator stateMachineGen;
-	static StateTextDiagramHelper stateTextDiagramHelper;
-	static StateDiagram stateDiagram;
-	static IResource root;
-	
-	@Before
-	public void createEnvironment() {
-		//		IWorkbench workspace = PlatformUI.getWorkbench();
-
-		
-		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		IWorkspaceRoot wsRoot = workspace.getRoot();
-		className = "ExampleClass.java";
-		
-		IPath location = new Path("/ExampleProject/src/ExampleClass.java");
-		IFile file = wsRoot.getFile(location);
-		IWorkbench wb = PlatformUI.getWorkbench();
-		IWorkbenchWindow window = wb.getActiveWorkbenchWindow();
-		IWorkbenchPage page = window.getActivePage();
-		editor = page.getActiveEditor();
-		input = editor.getEditorInput();
-		
-		stateMachineGen = new StateMachineGenerator();
-		HashSet<String> plantMarkerKey = new HashSet<String>();
-
-		try {
-			IDocumentProvider provider = new TextFileDocumentProvider();
-			provider.connect(file);
-			document = provider.getDocument(file);
-			FindReplaceDocumentAdapter finder = new FindReplaceDocumentAdapter(document);
-			IEditorInput editorInput = editor.getEditorInput();
-			root = StateTextDiagramHelper.getRoot(editorInput);
-			IPath path = ((IFileEditorInput) editorInput).getFile().getFullPath();
-
-			stateDiagram = new StateDiagram(finder, document, root, path);
-			stateTextDiagramHelper = new StateTextDiagramHelper(stateDiagram, "", 0, plantMarkerKey);
-
-			System.out.println(document.get());
-		} catch (CoreException e) {
-			e.printStackTrace();
-		} 
-	}
+	StateTextDiagramHelper stateTextDiagramHelper = new StateTextDiagramHelper();
 	
 	@Test 
 	public void checkRootFound() {
@@ -110,28 +66,7 @@ public class StateTextDiagramHelperTest {
 //		String expected = "ExampleState -[thickness=5,#Lime]> AnotherExampleState";
 //		assertEquals(expected, stateTextDiagramHelper.backwardsTransitionLink(transition))
 //	}
-	
-	@Test
-	public void checkClickingLineColorsState() {
-		
-		//a section within the lineNumber
-		int selStart = 87;
-		StringBuilder result = stateMachineGen.getDiagramTextLines(document, selStart, input);
-		String expected = "state ExampleState #Cyan";
-		assertTrue("state turns blue", result.toString().contains(expected));
-		
-	}
-	
-	@Test
-	public void checkStateLinkCreated() {
-		
-		//a section within the lineNumber
-		int selStart = 87;
-		StringBuilder result = stateMachineGen.getDiagramTextLines(document, selStart, input);
-		String expected = "state ExampleState[[ExampleClass.java#FSM#state#3]]";
-		assertTrue("state link appended in []", result.toString().contains(expected));
-		
-	}
+
 	
 	
 	//////////////////////////////////TRANSITIONS///////////////////////////////////////////////////
@@ -145,35 +80,7 @@ public class StateTextDiagramHelperTest {
 		assertEquals(expected, stateTextDiagramHelper.forwardTransitionLink(transition));
 	}
 	
-	@Test
-	public void checkClickingLineColorsTransition() {
-		
-		//a section within the lineNumber of that transition
-		int selStart = 119;
-		StringBuilder result = stateMachineGen.getDiagramTextLines(document, selStart, input);
-		String expected = "ExampleState -[thickness=5,#Lime]down-> AnotherExampleState : [[ExampleClass.java#FSM#transition#6 [anEvent ]]]";
-		assertTrue("transition turns green", result.toString().contains(expected));
-	}
 	
-	@Test
-	public void checkTransitionLinkCreated() {
-		
-		//a selection within uml but not on transition line
-		int selStart = 70;
-		StringBuilder result = stateMachineGen.getDiagramTextLines(document, selStart, input);
-		String expected = "ExampleState -down-> AnotherExampleState : [[ExampleClass.java#FSM#transition#6 [anEvent ]]]";
-		assertTrue("transition link created", result.toString().contains(expected));
-	}
-	
-	@Test
-	public void checkTransitionLinkCreatedAndColor() {
-		
-		//a section within the lineNumber of that transition
-		int selStart = 119;
-		StringBuilder result = stateMachineGen.getDiagramTextLines(document, selStart, input);
-		String expected = "ExampleState -[thickness=5,#Lime]down-> AnotherExampleState : [[ExampleClass.java#FSM#transition#6 [anEvent ]]]";
-		assertTrue("transition link created", result.toString().contains(expected));
-	}
 	
 	///////////////////////////////NEGATION METHODS////////////////////////////////////////////////
 	
@@ -219,51 +126,7 @@ public class StateTextDiagramHelperTest {
 		assertEquals(expected, stateTextDiagramHelper.negateCondition(stringToNegate));
 	}
 	
-	///////////////////////////////////////////Miselanious Tests///////////////////////////////////////////
-	
-	@Test
-	public void checkHighlightsAreRemovedIfJustState() throws CoreException {
-		int selStart = 87;
-		stateMachineGen.getDiagramTextLines(document, selStart, input);
-		IMarker[] markers = root.findMarkers("FSM.State.Highlight", true, IResource.DEPTH_INFINITE);
-		System.out.println(markers.length);
-		
-		stateTextDiagramHelper.removeHighlights(root);
-		markers = root.findMarkers("FSM.State.Highlight", true, IResource.DEPTH_INFINITE);
 
-		assertTrue("State markers removed", markers.length == 0);
-	
-	}
-	
-	@Test
-	public void checkHighlightsAreRemovedIfJustTransition() throws CoreException {
-		int selStart = 119;
-		stateMachineGen.getDiagramTextLines(document, selStart, input);
-		IMarker[] markers = root.findMarkers("FSM.Transition.Highlight_1", true, IResource.DEPTH_INFINITE);
-		System.out.println(markers.length);
-		
-		stateTextDiagramHelper.removeHighlights(root);
-		markers = root.findMarkers("FSM.Transition.Highlight_1", true, IResource.DEPTH_INFINITE);
-		assertTrue("State markers removed", markers.length == 0);
-	}
-	
-	@Test
-	public void checkHighlightsAreRemovedIfStateAndTransition() throws CoreException {
-		int selStart = 87;
-		stateMachineGen.getDiagramTextLines(document, selStart, input);
-		selStart = 119;
-		stateMachineGen.getDiagramTextLines(document, selStart, input);
-		
-		IMarker[] markers = root.findMarkers("FSM.Transition.Highlight_1", true, IResource.DEPTH_INFINITE);
-		System.out.println(markers.length);
-		
-		stateTextDiagramHelper.removeHighlights(root);
-		markers = root.findMarkers("FSM.Transition.Highlight_1", true, IResource.DEPTH_INFINITE);
-		
-		assertTrue("State markers removed", markers.length == 0);
-
-	}
-	
 	@Test
 	public void checkStateDescriptorRemovesFSMLower() {
 		String fsmLine = "//fsm: State1 -> State2";
@@ -291,6 +154,6 @@ public class StateTextDiagramHelperTest {
 	
 	
 	
-	///////////////////////////////TEST DATA STORES////////////////////////////////////////////////
+	
 	
 }

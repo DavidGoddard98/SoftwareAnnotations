@@ -1,5 +1,6 @@
 package plantuml.statemachine.generation;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.regex.Pattern;
 
@@ -7,7 +8,7 @@ import java.util.regex.Pattern;
 
 public class PatternIdentifier {
 	
-	protected LinkedList<RegexInfo> patternStore;
+	public LinkedList<RegexInfo> patternStore;
 	
 	
 	protected Pattern goodIfGuard = Pattern.compile("(if|\\}?\\s*else\\sif)\\s*\\(\\s*([a-zA-Z0-9\\s\\[\\];|&.,()!=_\\-<>+*]*)\\s*\\)\\s*(\\{?)\\s*([//]{2,}\\s*(.)*)*");
@@ -62,16 +63,21 @@ public class PatternIdentifier {
 	}
 	
 	public void add(Pattern pattern, int identifier) {
-	    patternStore.add(new RegexInfo(pattern, identifier));
+		ArrayList<Integer> storedNumb = new ArrayList<Integer>();
+		for (RegexInfo regex : patternStore) {
+			storedNumb.add(regex.identifier);
+		}
+		if (!storedNumb.contains(identifier))  
+			patternStore.add(new RegexInfo(pattern, identifier));
 	}
 	
 	
 
 	
-	protected class RegexInfo {
+	public class RegexInfo {
 		 
-		protected Pattern pattern;
-		protected int identifier;
+		public Pattern pattern;
+		public int identifier;
 			
 		public RegexInfo(Pattern pattern, int identifier) {
 			this.pattern = pattern;

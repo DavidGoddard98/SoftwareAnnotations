@@ -47,17 +47,11 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 	final String prefix = "@start_OSM_generation", prefixRegex = prefix;
 	final String suffix = "@end_OSM_generation", suffixRegex = suffix;
 	private PatternIdentifier patternIdentifier = new PatternIdentifier();
-	
-  
-	
-	
  	
  	public StateMachineGenerator(StateDiagram stateDiagram, String stateSelected, int selectedLineNum, StringBuilder result) {
  		this.stateDiagram = stateDiagram;
  		this.stateSelected = stateSelected;
- 		this.selectedLineNum = selectedLineNum;
- 		this.stateTextDiagramHelper = stateTextDiagramHelper;
-		
+ 		this.selectedLineNum = selectedLineNum;		
 	}
  	
  	public StateMachineGenerator() {
@@ -328,7 +322,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 				if (initialState == null) {
 					certainEvent = true;
 					initialState = m.group(4);
-					Node node = new Node(initialState, line, null, true, charStart, charEnd, lineNum, new Event(""));
+					Node node = new Node(initialState, line,  true, charStart, charEnd, lineNum, new Event(""));
 					theTree = new StateTree(node);
 					stateFound.push(node);
 					result.append("[*] -> " + initialState);
@@ -339,7 +333,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 				} else if (afterLoopState) {
 					certainEvent = true;
 					result.append(whileStateName + " -> " + m.group(4) + " : Exit loop" + "\n");
-					Node node = new Node(m.group(4), line, null, true, charStart, charEnd, lineNum, new Event(""));
+					Node node = new Node(m.group(4), line, true, charStart, charEnd, lineNum, new Event(""));
 					theTree = new StateTree(node);
 					stateFound.push(node);
 					afterLoopState = false;
@@ -351,7 +345,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					//IF THIS IS VISIBLE
 					if (stateFound.peek().visible) {
 						String lastStateName = stateFound.peek().stateName;
-						Node newRoot = new Node(lastStateName, line, null, true, stateFound.peek().charStart, stateFound.peek().charEnd, stateFound.peek().lineNum, new Event(""));
+						Node newRoot = new Node(lastStateName, line, true, stateFound.peek().charStart, stateFound.peek().charEnd, stateFound.peek().lineNum, new Event(""));
 	
 						buildStateTree(false);
 						appendStateAndTransitions();
@@ -374,7 +368,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 				if (currentBlock.empty()) {
 					
 					certainEvent = true;
-					Node node = new Node(m.group(4), line, theTree.root, false, charStart, charEnd, lineNum, new Event("unconditional"));   
+					Node node = new Node(m.group(4), line, false, charStart, charEnd, lineNum, new Event("unconditional"));   
 					theTree.addNode(theTree.root, node);
 					unConditionalState = true;
 					stateFound.push(node);
@@ -385,7 +379,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					if (currentBlock.peek().equals("conditional")) { 
 						currentBlock.pop(); //we know the conditional is for a state 
 						currentBlock.push("state-conditional"); //therefore speicify this
-						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, events.peek());   
+						Node node = new Node(m.group(4), line, false, charStart, charEnd, lineNum, events.peek());   
 						theTree.addNode(stateFound.peek(), node);
 						stateFound.push(node);
 						
@@ -393,17 +387,17 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					} else if (currentBlock.peek().equals("else-conditional")) {
 						currentBlock.pop(); //we know the conditional is for a state 
 						currentBlock.push("else-state-conditional"); //therefore speicify this
-						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, new Event("unconditional"));   
+						Node node = new Node(m.group(4), line, false, charStart, charEnd, lineNum, new Event("unconditional"));   
 						theTree.addNode(stateFound.peek(), node);
 						stateFound.push(node);
 					} else if (currentBlock.peek().equals("state-conditional")) {
 						
-						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, new Event("unconditional"));   
+						Node node = new Node(m.group(4), line, false, charStart, charEnd, lineNum, new Event("unconditional"));   
 						theTree.addNode(stateFound.peek(), node);
 						stateFound.push(node);
 						
 					}  else if (currentBlock.peek().equals("case-state") || currentBlock.peek().equals("while-loop") ) {
-						Node node = new Node(m.group(4), line, stateFound.peek(), false, charStart, charEnd, lineNum, new Event(""));   
+						Node node = new Node(m.group(4), line, false, charStart, charEnd, lineNum, new Event(""));   
 						theTree.addNode(stateFound.peek(), node);
 						stateFound.push(node);
 						selfLoop = false;
@@ -411,7 +405,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					} 
 				} else if (!currentBlock.empty() && currentBlock.peek().equals("while-loop") ) {
 					result.append("[*] -> " + m.group(4) + "\n");
-					Node node = new Node(m.group(4), line, null, true, charStart, charEnd, lineNum , new Event("")); 
+					Node node = new Node(m.group(4), line, true, charStart, charEnd, lineNum , new Event("")); 
 					theTree = new StateTree(node);
 					stateFound.push(node);
 				} 
@@ -472,7 +466,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 				String method = m.group(1).substring(0, index);
 				if (!stateFound.empty() && declaredMethods.contains(method)){
 					
-					for (Node descendant : theTree.getAllDescendants(stateFound.peek())) {
+					for (Node descendant : theTree.getNodeAndAllDescendants(stateFound.peek())) {
 						descendant.action.add(new Action(m.group(1), theTree.currentIndex-1));
 					}
 				}
@@ -507,7 +501,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					result.append("state " + m.group(2) + "\n");
 					if( currentBlock.contains("while-loop")) selfLoop = true;
 				}
-				Node node = new Node(m.group(2), line, null, true, charStart, charEnd, lineNum, new Event(""));
+				Node node = new Node(m.group(2), line, true, charStart, charEnd, lineNum, new Event(""));
 				theTree = new StateTree(node);
 				stateFound.push(node);
 			
@@ -594,7 +588,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 				charStart = stateDiagram.document.getLineOffset(lineNum);
 				charEnd = charStart + stateDiagram.document.getLineLength(lineNum);
 				
-				Node whileState = new Node(m.group(1), line, theTree.root, true, charStart, charEnd, lineNum, new Event("unconditional"));	
+				Node whileState = new Node(m.group(1), line, true, charStart, charEnd, lineNum, new Event("unconditional"));	
 				whileStateName = m.group(1);
 				
 				addNodeBuildTree(whileState, theTree.root, false);
@@ -880,7 +874,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					
 					
 					if (drawTree) {
-						addNodeBuildTree( new Node("[*]", "", theTree.root, true, 0, 0, -1, new Event("")), theTree.root, true);
+						addNodeBuildTree( new Node("[*]", "", true, 0, 0, -1, new Event("")), theTree.root, true);
 						appendStateAndTransitions();
 						appendPlantUML();
 
@@ -1015,7 +1009,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 	
 	
 	//A key is created for every diagram text line and if it doesnt exist then a marker of that line and the relevant positions is created.
-	protected void createKey(StateReference stateReference) throws CoreException {
+	public void createKey(StateReference stateReference) throws CoreException {
 		
 		String theLine = stateReference.editorLine;
 		int lineNum = stateReference.lineNum;

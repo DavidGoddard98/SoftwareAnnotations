@@ -48,9 +48,9 @@ public class StateTree {
 	public Node findLastUnconditionalState() {
 		Node lastUnconditional = null;
 		int highestIndex = 0;
+		System.out.println("here");
 		for (Node state : nodes) {
-			if (state.event.equals("unconditional") && state.visible) {
-				
+			if (state.event.event.equals("unconditional") && state.visible) {
 				if (state.index > highestIndex) {
 					highestIndex = state.index;
 					lastUnconditional = state;
@@ -76,7 +76,7 @@ public class StateTree {
 	public void addNode(Node parent, Node node) {
 		node.setIndex(currentIndex);
 		this.nodes.add(node);
-		
+		node.setParent(parent);
 		if(links.containsKey(parent)) {
 			links.get(parent).add(node);
 		} else {
@@ -88,7 +88,7 @@ public class StateTree {
 		currentIndex ++;
 	}
 	
-	public ArrayList<Node> getAllDescendants(Node parent) {
+	public ArrayList<Node> getNodeAndAllDescendants(Node parent) {
 		ArrayList<Node> allDescendants = new ArrayList<Node>();
 		if (parent.visible) allDescendants.add(parent);
 		for (Node node : nodes) {
@@ -104,7 +104,8 @@ public class StateTree {
 	public ArrayList<Node> getChildren(Node parent) {
 		if (links.get(parent) != null)
 			return links.get(parent);
-		return new ArrayList<Node>();
+		//if (!nodes.contains(parent)) return null;
+		else return new ArrayList<Node>();
 	}
 		
 	public boolean checkForUnconditional(Node from, Node to, Node destination) {
@@ -129,7 +130,10 @@ public class StateTree {
 				lastNode = node;
 			}
 		}
-		this.nodes.remove(lastNode);
+		if (highestIndex != 0) {
+			this.nodes.remove(lastNode);
+
+		}
 		
 	}
 	
@@ -164,6 +168,7 @@ public class StateTree {
 		ArrayList<Node> nodesMet = new ArrayList<Node>();
 		ArrayList<Node> route = new ArrayList<Node>();
 		if (noLink.containsKey(from) && noLink.get(from).contains(to)) return null;
+		if (to.index < from.index) return null;
 		int fromIndex = from.index;
 		boolean nodeFound = false;
 		boolean checker = false;
