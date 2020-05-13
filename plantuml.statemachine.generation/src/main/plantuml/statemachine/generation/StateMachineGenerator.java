@@ -194,11 +194,19 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 			case 0: //call back...
 				
 				if (line.contains("Systen.out.print")) break;
-				if (exitConditions.contains(m.group(1))) {
+				if (exitConditions!= null && exitConditions.contains(m.group(1))) {
 					exitStates.add(stateFound.peek());
 				}
 				if (!stateFound.empty()) stateFound.peek().setVisible();
 				
+				int index = m.group(3).indexOf("(");
+				String method = m.group(3).substring(0, index);
+				if (!stateFound.empty() && declaredMethods.contains(method)){
+					
+					for (Node descendant : theTree.getNodeAndAllDescendants(stateFound.peek())) {
+						descendant.action.add(new Action(m.group(3), theTree.currentIndex-1));
+					}
+				}
 				
 				break;
 			case 1: //complex if guard
@@ -247,7 +255,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 				         if (aString.indexOf("equality") != -1) {
 				        	 
 		
-				             int index = aString.indexOf("equality");
+				             index = aString.indexOf("equality");
 				        	 int anotherIndex = aString.indexOf(" ", index);
 				        	 if (anotherIndex == -1) anotherIndex = aString.length();
 				        	 String aState = aString.substring(index + 8, anotherIndex);
@@ -469,14 +477,17 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 				break;
 			case 7: //simpleMethodCal
 				
-				int index = m.group(1).indexOf("(");
-				String method = m.group(1).substring(0, index);
+				if (!stateFound.empty()) stateFound.peek().setVisible();
+				index = m.group(1).indexOf("(");
+				method = m.group(1).substring(0, index);
 				if (!stateFound.empty() && declaredMethods.contains(method)){
 					
 					for (Node descendant : theTree.getNodeAndAllDescendants(stateFound.peek())) {
 						descendant.action.add(new Action(m.group(1), theTree.currentIndex-1));
 					}
 				}
+			
+				
 				if (exitConditions!= null && exitConditions.contains(m.group(1)) && !stateFound.empty()) {
 					selfLoop = false;
 					String stateName = stateFound.peek().stateName;
@@ -695,10 +706,10 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					for (Action action: from.action) {
 						if (action.index < to.index) {
 							if (toggle) {
-								transition.append(" / ");
+								transition.append(" /");
 								toggle = false;
 							}
-							transition.append(action.action + " ; ");
+							transition.append(" " + action.action + ";");
 						}
 					}
 				}

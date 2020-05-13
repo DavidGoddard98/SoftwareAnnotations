@@ -91,8 +91,8 @@ public class ContextTest {
 	
 	
 	//////////////////////////////////SINGLE STATE//////////////////////////////
-	public StringBuilder clickExample_oneStateVisible() { 
-		int selStart = 386;
+	public StringBuilder clickExample1_Visible() { 
+		int selStart = 414;
 		return stateMachineGen.getDiagramTextLines(document, selStart, input); 
 	}
 	
@@ -101,13 +101,13 @@ public class ContextTest {
 		initializeResult();
 		
 		result.append("[*] -> ExampleState" + "\n");
-		result.append("ExampleState -down-> [*] : No event found" + "\n");
-		result.append("state ExampleState[[ExampleClass.java#FSM#state#16]]" + "\n");
-		assertEquals(result.toString(), clickExample_oneStateVisible().toString());
+		result.append("ExampleState -down-> [*] :  / call();" + "\n");
+		result.append("state ExampleState[[ExampleClass.java#FSM#state#20]]" + "\n");
+		assertEquals(result.toString(), clickExample1_Visible().toString());
 	}
 	
-	public StringBuilder clickExample_oneStateInvisible() { 
-		int selStart = 486;
+	public StringBuilder clickExample1_Invisible() { 
+		int selStart = 515;
 		return stateMachineGen.getDiagramTextLines(document, selStart, input); 
 	}
 	
@@ -117,13 +117,29 @@ public class ContextTest {
 		
 		result.append("[*] -> ExampleState" + "\n");
 		result.append("ExampleState -down-> [*] : No event found" + "\n");
-		result.append("state ExampleState[[ExampleClass.java#FSM#state#50]]" + "\n");
-		assertEquals(result.toString(), clickExample_oneStateInvisible().toString());
+		result.append("state ExampleState[[ExampleClass.java#FSM#state#26]]" + "\n");
+		assertEquals(result.toString(), clickExample1_Invisible().toString());
+	}
+	
+	//Actions
+	public StringBuilder clickExample1_WithAction() { 
+		int selStart = 687;
+		return stateMachineGen.getDiagramTextLines(document, selStart, input); 
+	}
+	
+	@Test
+	public void checkOneStateWithAction() {
+		initializeResult();
+		
+		result.append("[*] -> ExampleState" + "\n");
+		result.append("ExampleState -down-> [*] :  / call(); additionalAction();" + "\n");
+		result.append("state ExampleState[[ExampleClass.java#FSM#state#35]]" + "\n");
+		assertEquals(result.toString(), clickExample1_WithAction().toString());
 	}
 	
 	///////////////////////////////////TWO_STATES///////////////////////////////
-	public StringBuilder clickExample_twoStatesBothVisible() {
-		int selStart = 635;
+	public StringBuilder clickExample2_BothVisible() {
+		int selStart = 889;
 		return stateMachineGen.getDiagramTextLines(document, selStart, input); 
 	}
 	
@@ -132,15 +148,15 @@ public class ContextTest {
 		initializeResult();
 		
 		result.append("[*] -> ExampleState" + "\n");
-		result.append("ExampleState -down-> AnotherState : No event found" + "\n");
-		result.append("AnotherState -down-> [*] : No event found" + "\n");
-		result.append("state AnotherState[[ExampleClass.java#FSM#state#24]]" + "\n");
-		result.append("state ExampleState[[ExampleClass.java#FSM#state#22]]" + "\n");
-		assertEquals(result.toString(), clickExample_twoStatesBothVisible().toString());
+		result.append("ExampleState -down-> AnotherState :  / call();" + "\n");
+		result.append("AnotherState -down-> [*] :  / call();" + "\n");
+		result.append("state AnotherState[[ExampleClass.java#FSM#state#47]]" + "\n");
+		result.append("state ExampleState[[ExampleClass.java#FSM#state#45]]" + "\n");
+		assertEquals(result.toString(), clickExample2_BothVisible().toString());
 	}
 	
-	public StringBuilder clickExample_twoStatesJustFirstVisible() {
-		int selStart = 789;
+	public StringBuilder clickExample2_JustFirstVisible() {
+		int selStart = 1072;
 		return stateMachineGen.getDiagramTextLines(document, selStart, input); 
 	}
 
@@ -150,116 +166,124 @@ public class ContextTest {
 		
 		result.append("[*] -> ExampleState" + "\n");
 		result.append("AnotherState -down-> [*] : No event found" + "\n");
-		result.append("ExampleState -down-> AnotherState : No event found" + "\n");
-		result.append("ExampleState -down-> [*] : No event found" + "\n");
-		result.append("state AnotherState[[ExampleClass.java#FSM#state#32]]" + "\n");
-		result.append("state ExampleState[[ExampleClass.java#FSM#state#30]]" + "\n");
-		assertEquals(result.toString(), clickExample_twoStatesJustFirstVisible().toString());
+		result.append("ExampleState -down-> AnotherState :  / call();" + "\n");
+		result.append("ExampleState -down-> [*] :  / call();" + "\n");
+		result.append("state AnotherState[[ExampleClass.java#FSM#state#57]]" + "\n");
+		result.append("state ExampleState[[ExampleClass.java#FSM#state#55]]" + "\n");
+		assertEquals(result.toString(), clickExample2_JustFirstVisible().toString());
 	}
 	
-	public StringBuilder clickExample_twoStatesJustSecondVisible() {
-		int selStart = 968;
+	public StringBuilder clickExample2_JustSecondVisible() {
+		int selStart = 1278;
 		return stateMachineGen.getDiagramTextLines(document, selStart, input); 
 	}
 	
 	@Test
-	public void checkTwoStatesJustSecondVisible() {
+	public void checkTwoStatesJustSecondVisible() {	
 		initializeResult();
 		
-		result.append("[*] -> AnotherState" + "\n");
-		result.append("AnotherState -down-> [*] : No event found" + "\n");
-		result.append("state AnotherState[[ExampleClass.java#FSM#state#24]]" + "\n");
-		assertEquals(result.toString(), clickExample_twoStatesJustSecondVisible().toString());
+		result.append("[*] -> ExampleState" + "\n");
+		result.append("ExampleState -down-> AnotherState : No event found" + "\n");
+		result.append("AnotherState -down-> [*] :  / call();" + "\n");
+		result.append("state AnotherState[[ExampleClass.java#FSM#state#65]]" + "\n");
+		result.append("state ExampleState[[ExampleClass.java#FSM#state#64]]" + "\n");
+		assertEquals(result.toString(), clickExample2_JustSecondVisible().toString());
 	}
 	
-	public StringBuilder clickExample_twoStatesBothInvisible() {
-		int selStart = 1105;
+	public StringBuilder clickExample2_BothInvisible() {
+		int selStart = 1415;
 		return stateMachineGen.getDiagramTextLines(document, selStart, input); 
 	}
 	
 	
 	@Test
-	public void checkTwoStatesBothInvisible() {
+	public void checkTwoStatesBothInvisible() { //FAILS
 		initializeResult();
-		result.append("[*] -> AnotherState" + "\n");
-		result.append("AnotherState -down-> [*] : No event found" + "\n");
-		result.append("state AnotherState[[ExampleClass.java#FSM#state#24]]" + "\n");
+		result.append("[*] -> ExampleState" + "\n");
+		result.append("ExampleState -down-> AnotherState : No event found" + "\n");
+		result.append("ExampleState -down-> [*] : No event found" + "\n");
+		result.append("state ExampleState[[ExampleClass.java#FSM#state#71]]" + "\n");
+		result.append("state AnotherState[[ExampleClass.java#FSM#state#72]]" + "\n");
 		//Just last state should be visible
-		assertEquals(result.toString(), clickExample_twoStatesBothInvisible().toString());
+		assertEquals(result.toString(), clickExample2_BothInvisible().toString());
 	}
 	
 	
 	/////////////////////////////WITH GUARD////////////////////////////////////////////////
 	
-	public StringBuilder clickExample_twoStatesBothVisibleWithGuard() {
-		int selStart = 1329;
+	public StringBuilder clickExample2_BothVisibleWithGuard() {
+		int selStart = 1599;
 		return stateMachineGen.getDiagramTextLines(document, selStart, input);
 	}
 	
 	@Test
 	public void checkTwoStatesBothVisibleWithGuard() {
 		initializeResult();
-		result.append("[*] -> AnotherState" + "\n");
-		result.append("ExampleState -down-> AnotherState : [[ExampleClass.java#FSM#transition#64 [ExampleGuard ]]]" + "\n");
-		result.append("ExampleState -down-> [*] : No event found" + "\n");
-		result.append("state AnotherState[[ExampleClass.java#FSM#state#65]]" + "\n");
-		result.append("state ExampleState[[ExampleClass.java#FSM#state#62]]" + "\n");
+		result.append("[*] -> ExampleState" + "\n");
+		result.append("ExampleState -down-> AnotherState : [[ExampleClass.java#FSM#transition#85 [ExampleGuard ] / call();]]" + "\n");
+		result.append("ExampleState -down-> [*] : [!(ExampleGuard) ] / call();" + "\n");
+		result.append("AnotherState -down-> [*] :  / call();" + "\n");
+		result.append("state AnotherState[[ExampleClass.java#FSM#state#86]]" + "\n");
+		result.append("state ExampleState[[ExampleClass.java#FSM#state#83]]" + "\n");
 		//Just last state should be visible
-		assertEquals(result.toString(), clickExample_twoStatesBothInvisible().toString());
+		assertEquals(result.toString(), clickExample2_BothVisibleWithGuard().toString());
 	}
 	
 	
 	
-	public StringBuilder clickExample_twoStatesFirstVisibleWithGuard() {
-		int selStart = 1439;
+	public StringBuilder clickExample2_FirstVisibleWithGuard() {
+		int selStart = 1765;
 		return stateMachineGen.getDiagramTextLines(document, selStart, input);
 	}
 	
 	@Test
 	public void checkTwoStatesFirstVisibleWithGuard() {
 		initializeResult();
-		result.append("[*] -> AnotherState" + "\n");
-		result.append("ExampleState -down-> AnotherState : [[ExampleClass.java#FSM#transition#82 [ExampleGuard ]]]" + "\n");
-		result.append("ExampleState -down-> [*] : No event found" + "\n");
-		result.append("state AnotherState[[ExampleClass.java#FSM#state#83]]" + "\n");
-		result.append("state ExampleState[[ExampleClass.java#FSM#state#81]]" + "\n");
+		result.append("[*] -> ExampleState" + "\n");
+		result.append("AnotherState -down-> [*] : No event found" + "\n");
+		result.append("ExampleState -down-> AnotherState : [[ExampleClass.java#FSM#transition#97 [ExampleGuard ] / call();]]" + "\n");
+		result.append("ExampleState -down-> [*] :  / call();" + "\n");
+		result.append("state AnotherState[[ExampleClass.java#FSM#state#98]]" + "\n");
+		result.append("state ExampleState[[ExampleClass.java#FSM#state#95]]" + "\n");
 		//Just last state should be visible
-		assertEquals(result.toString(), clickExample_twoStatesBothInvisible().toString());
+		assertEquals(result.toString(), clickExample2_FirstVisibleWithGuard().toString());
 	}
 	
-	public StringBuilder clickExample_twoStatesSecondVisibleWithGuard() {
-		int selStart = 1668;
+	public StringBuilder clickExample2_SecondVisibleWithGuard() {
+		int selStart = 1963;
 		return stateMachineGen.getDiagramTextLines(document, selStart, input);
 	}
 	
 	@Test
 	public void checkTwoStatesSecondVisibleWithGuard() {
 		initializeResult();
-		result.append("[*] -> AnotherState" + "\n");
-		result.append("ExampleState -down-> AnotherState : [[ExampleClass.java#FSM#transition#91 [ExampleGuard ]]]" + "\n");
-		result.append("ExampleState -down-> [*] : No event found" + "\n");
-		result.append("state AnotherState[[ExampleClass.java#FSM#state#92]]" + "\n");
-		result.append("state ExampleState[[ExampleClass.java#FSM#state#90]]" + "\n");
+		result.append("[*] -> ExampleState" + "\n");
+		result.append("ExampleState -down-> AnotherState : [[ExampleClass.java#FSM#transition#107 [ExampleGuard ]]]" + "\n");
+		result.append("ExampleState -down-> [*] : [!(ExampleGuard) ]" + "\n");
+		result.append("AnotherState -down-> [*] :  / call();" + "\n");
+		result.append("state AnotherState[[ExampleClass.java#FSM#state#108]]" + "\n");
+		result.append("state ExampleState[[ExampleClass.java#FSM#state#106]]" + "\n");
 		//Just last state should be visible
-		assertEquals(result.toString(), clickExample_twoStatesBothInvisible().toString());
+		assertEquals(result.toString(), clickExample2_SecondVisibleWithGuard().toString());
 	}
 	
 	
 	public StringBuilder clickExample2_BothInvisibleWithGuard() {
-		int selStart = 1837;
+		int selStart = 2237;
 		return stateMachineGen.getDiagramTextLines(document, selStart, input);
 	}
 	
 	@Test
 	public void checkTwoStatesBothInVisibleWithGuard() {
 		initializeResult();
-		result.append("[*] -> AnotherState" + "\n");
-		result.append("ExampleState -down-> AnotherState : [[ExampleClass.java#FSM#transition#91 [ExampleGuard ]]]" + "\n");
+		result.append("[*] -> ExampleState" + "\n");
+		result.append("AnotherState -down-> [*] : No event found" + "\n");
+		result.append("ExampleState -down-> AnotherState : [[ExampleClass.java#FSM#transition#116 [ExampleGuard ]]]" + "\n");
 		result.append("ExampleState -down-> [*] : No event found" + "\n");
-		result.append("state AnotherState[[ExampleClass.java#FSM#state#92]]" + "\n");
-		result.append("state ExampleState[[ExampleClass.java#FSM#state#90]]" + "\n");
+		result.append("state AnotherState[[ExampleClass.java#FSM#state#117]]" + "\n");
+		result.append("state ExampleState[[ExampleClass.java#FSM#state#115]]" + "\n");
 		//Just last state should be visible
-		assertEquals(result.toString(), clickExample_twoStatesBothInvisible().toString());
+		assertEquals(result.toString(), clickExample2_BothInvisibleWithGuard().toString());
 	}
 	
 	/////////////////////////////THREE STATES/////////////////////////////////////
@@ -284,11 +308,73 @@ public class ContextTest {
 		return stateMachineGen.getDiagramTextLines(document, selStart, input);
 	}
 	
-	public StringBuilder clickExample3_WithGuardOnSecondState() {
+	//Two states same guard
+	public StringBuilder clickExample3_AllVisibleWithSameGuardOnSecondAndThirdState() {
 		int selStart = 1837;
 		return stateMachineGen.getDiagramTextLines(document, selStart, input);
 	}
+	
+	public StringBuilder clickExample3_SecondInvisibleWithSameGuardOnSecondAndThirdState() {
+		int selStart = 1837;
+		return stateMachineGen.getDiagramTextLines(document, selStart, input);
+	}
+	
+	public StringBuilder clickExample3_ThirdInvisibleWithSameGuardOnSecondAndThirdState() {
+		int selStart = 1837;
+		return stateMachineGen.getDiagramTextLines(document, selStart, input);
+	}
+	//Two seperate guards
+	public StringBuilder clickExample3_AllVisibleWithDifferentGuardOnSecondAndThirdState() {
+		int selStart = 1837;
+		return stateMachineGen.getDiagramTextLines(document, selStart, input);
+	}
+	
+	public StringBuilder clickExample3_SecondInvisibleWithDifferentGuardOnSecondAndThirdState() {
+		int selStart = 1837;
+		return stateMachineGen.getDiagramTextLines(document, selStart, input);
+	}
+	
+	public StringBuilder clickExample3_ThirdInvisibleWithDifferentGuardOnSecondAndThirdState() {
+		int selStart = 1837;
+		return stateMachineGen.getDiagramTextLines(document, selStart, input);
+	}
+	
+	public StringBuilder clickExample3_AllInVisibleWithDifferentGuardOnSecondAndThirdState() {
+		int selStart = 1837;
+		return stateMachineGen.getDiagramTextLines(document, selStart, input);
+	}
+	
+	//Nested guard
 
+	public StringBuilder clickExample3_AllVisibleNestedGuard() {
+		int selStart = 1837;
+		return stateMachineGen.getDiagramTextLines(document, selStart, input);
+	}
+	
+	public StringBuilder clickExample3_SecondInvisibleNestedGuard() {
+		int selStart = 1837;
+		return stateMachineGen.getDiagramTextLines(document, selStart, input);
+	}
+	
+	public StringBuilder clickExample3_ThirdInvisibleNestedGuard() {
+		int selStart = 1837;
+		return stateMachineGen.getDiagramTextLines(document, selStart, input);
+	}
+	
+	public StringBuilder clickExample3_AllInVisibleNestedGuard() {
+		int selStart = 1837;
+		return stateMachineGen.getDiagramTextLines(document, selStart, input);
+	}
 	
 	
+	////////////////////////////Unconditional state in /////////////////
+	
+	
+	//Remove command
+	
+	//Exit conditions
+	
+	//PlantUML
+	
+	//comments on the end of lines?
 }
