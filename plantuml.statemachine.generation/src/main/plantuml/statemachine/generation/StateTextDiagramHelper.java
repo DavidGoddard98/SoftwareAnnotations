@@ -248,8 +248,11 @@ public class StateTextDiagramHelper  {
 				stateReference = new StateReference(line, editorLine, lineNum, charStart, charEnd);
 				
 			} else if (line.contains(":")) {
-				index = line.indexOf(":") - 1;
+				index = line.indexOf(":");
 				stateName = line.substring(0, index).trim();
+				System.out.println();
+				System.out.println();
+				System.out.println("STATE NAME: " + stateName);
 				charStart = markerRegion.getOffset();
 				if (multiLineEnd == -1) {
 					charEnd = markerRegion.getOffset() + markerRegion.getLength();
@@ -776,10 +779,11 @@ public class StateTextDiagramHelper  {
 				} 
 
 				//Color the transitions on the diagram in the same colors you colored the transitions in the editor
-				String colorTransition = forwardTransitionLink(stateReference.theLine);
-				appendTextualDiagram(stateDiagram, stateName, backwardTransitionLink(this.stateDiagram, colorTransition, lineNum, stateReference.theLine) + "\n");
-				stateDiagram.addedTransitions.add(theLine);
-				stateDiagram.colorCounter++;
+				if (!this.stateDiagram.addedTransitions.contains(theLine)) {
+					String colorTransition = forwardTransitionLink(stateReference.theLine);
+					appendTextualDiagram(stateDiagram, stateName, backwardTransitionLink(this.stateDiagram, colorTransition, lineNum, stateReference.theLine) + "\n");
+					stateDiagram.addedTransitions.add(theLine);
+				}
 				
 			} else {
 				charStart = stateReference.charStart;

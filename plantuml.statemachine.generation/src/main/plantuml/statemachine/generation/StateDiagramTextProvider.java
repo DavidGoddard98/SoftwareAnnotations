@@ -15,6 +15,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 
 
 import net.sourceforge.plantuml.text.AbstractTextDiagramProvider;
+import utils.StateTree;
 
 public class StateDiagramTextProvider extends AbstractTextDiagramProvider {
 
@@ -49,7 +50,8 @@ public class StateDiagramTextProvider extends AbstractTextDiagramProvider {
 	
 	public StateMachineGenerator getOSMGenerator() {
 		if (osmGenerator == null) {
-			osmGenerator = new StateMachineGenerator();
+			StateTree theTree = null;
+			osmGenerator = new StateMachineGenerator(theTree);
 		}
 		return osmGenerator;
 	}

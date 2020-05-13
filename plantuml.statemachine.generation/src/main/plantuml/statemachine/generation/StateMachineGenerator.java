@@ -54,8 +54,11 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
  		this.selectedLineNum = selectedLineNum;		
 	}
  	
+ 	public StateMachineGenerator(StateTree theTree) {
+ 		this.theTree = theTree;
+ 	}
+ 	
  	public StateMachineGenerator() {
- 		
  	}
  	
  	//LINKING DIAGRAM TO TEXT VARIABLES//////
@@ -84,7 +87,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 	Stack<Node> stateFound;
 	Stack<String> ignoreStack;
 	StringBuilder result;
-	StateTree theTree;
+	StateTree theTree = getStateTree();
 	StateTree storeTree;
 	
 	boolean ignore = false;
@@ -99,7 +102,9 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 	
 	String initialState = null;
 	
-	
+	public StateTree getStateTree() {
+		return this.storeTree;
+	}
 	
 	
 	private void identifyPattern(String line, int lineNum, int startOfRegion, int selectionStart) throws BadLocationException, CoreException {
@@ -167,6 +172,8 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					stateTextDiagramHelper.instantiateTransitionStateMap();
 					stateTextDiagramHelper.isStateSelected(); //if selectedLineNum == lineNum of a state then highlight all references to state
 					stateTextDiagramHelper.appendTransitionStates(selStart);
+					stateDiagram2.transitionStateReferences.clear();
+
 					stateTextDiagramHelper.appendStateAndTransitions();
 					System.out.println(removeFSM);
 					
@@ -879,8 +886,9 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 						appendPlantUML();
 
 						result.append(stateDiagramAsString());
-
 					}
+					
+					appendPlantUML() ;
 					
 
 					

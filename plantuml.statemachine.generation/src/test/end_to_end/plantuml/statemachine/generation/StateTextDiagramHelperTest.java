@@ -3,6 +3,8 @@ package plantuml.statemachine.generation;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 
 import org.eclipse.core.resources.IFile;
@@ -31,6 +33,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import utils.Node;
 import utils.StateReference;
 
 public class StateTextDiagramHelperTest {
@@ -60,7 +63,6 @@ public class StateTextDiagramHelperTest {
 		editor = page.getActiveEditor();
 		input = editor.getEditorInput();
 		
-		stateMachineGen = new StateMachineGenerator();
 		HashSet<String> plantMarkerKey = new HashSet<String>();
 
 		try {
@@ -74,6 +76,7 @@ public class StateTextDiagramHelperTest {
 
 			stateDiagram = new StateDiagram(finder, document, root, path);
 			stateTextDiagramHelper = new StateTextDiagramHelper(stateDiagram, "", 0, plantMarkerKey);
+			stateMachineGen = new StateMachineGenerator();
 
 			System.out.println(document.get());
 		} catch (CoreException e) {
@@ -318,41 +321,51 @@ public class StateTextDiagramHelperTest {
 	
 	
 	//////////////////////////////////////DATA STORES//////////////////////////////////////////////////////////////////
+//	
+//	@Test 
+//	public void checkAppendToListsAppendsTransitionIfGivenTransition() {
+//		stateDiagram.clearStorage();
+//		String line = "ExampleState -> AnotherState"; //line 20 //line19? 320
+//		String editorLine = "FSM: ExampleState -> AnotherState";
+//		int lineNum = 20;
+//		int multiLineEnd = -1;
+//		int selStart = 320;
+//		
+//		StringBuilder result = stateMachineGen.getDiagramTextLines(document, selStart, input);
+//		
+//		String theLine = stateMachineGen.stateTextDiagramHelper.stateDiagram.stateLinkers.get("ExampleState").get(0).theLine;
+//		
+//		assertEquals(line, theLine);
+//		
+//		
+//		
+//	}
 	
-	@Test 
-	public void checkAppendToListsAppendsTransitionIfGivenTransition() {
-		stateDiagram.clearStorage();
-		String line = "ExampleState -> AnotherState";
-		String editorLine = "FSM: ExampleState -> AnotherState";
-		int lineNum = 1;
-		int multiLineEnd = -1;
-		int start = 50;
-		
-	}
-	
-	@Test
-	public void checkAppendToListsAppendsStateIfGivenState() {
-		
-	}
-	
-	@Test
-	public void checkAppendToListsAppendsReferenceToAListIFStateSeenBefore() {
-		
-	}
-	
-	@Test
-	public void checkAppendToListsCreatesNewListIfNewStateFound() {
-		
-	}
-	
-	@Test
-	public void checkAppendToListsCorrectlyIdentifiesBothStatesGivenTransition() {
-		
-	}
-	
-	@Test
-	public void checkAppendToListsCorrectlyIdentifiesStateGivenState() {
-		
-	}
+//	@Test
+//	public void checkAppendToListsAppendsStateIfGivenState() {
+//		stateDiagram.clearStorage();
+//		String line = "ExampleState: a Description"; //line 22 //21? 360
+//		String editorLine = "FSM: ExampleState: a Description";
+//	}
+//	
+//	@Test
+//	public void checkAppendToListsAppendsReferenceToAListIFStateSeenBefore() {
+//		
+//	}
+//	
+//	@Test
+//	public void checkAppendToListsCreatesNewListIfNewStateFound() {
+//		
+//	}
+//	
+//	@Test
+//	public void checkAppendToListsCorrectlyIdentifiesBothStatesGivenTransition() {
+//		
+//	}
+//	
+//	@Test
+//	public void checkAppendToListsCorrectlyIdentifiesStateGivenState() {
+//		
+//	}
 	
 }
