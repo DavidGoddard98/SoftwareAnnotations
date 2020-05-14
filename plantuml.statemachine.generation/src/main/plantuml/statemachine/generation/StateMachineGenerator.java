@@ -402,7 +402,7 @@ public class StateMachineGenerator extends StateTextDiagramHelper {
 					} else if (currentBlock.peek().equals("else-conditional")) {
 						currentBlock.pop(); //we know the conditional is for a state 
 						currentBlock.push("else-state-conditional"); //therefore speicify this
-						Node node = new Node(m.group(4), line, false, charStart, charEnd, lineNum, new Event("unconditional"));   
+						Node node = new Node(m.group(4), line, true, charStart, charEnd, lineNum, new Event("unconditional"));   
 						theTree.addNode(stateFound.peek(), node);
 						stateFound.push(node);
 					} else if (currentBlock.peek().equals("state-conditional")) {

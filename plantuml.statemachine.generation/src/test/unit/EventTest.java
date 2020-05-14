@@ -1,4 +1,4 @@
-package plantuml.statemachine.generation;
+
 
 import static org.junit.Assert.assertEquals;
 

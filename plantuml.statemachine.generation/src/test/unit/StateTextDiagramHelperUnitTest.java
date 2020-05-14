@@ -41,7 +41,7 @@ import plantuml.statemachine.generation.StateMachineGenerator;
 import plantuml.statemachine.generation.StateTextDiagramHelper;
 import utils.StateReference;
 
-public class StateTextDiagramHelperTest {
+public class StateTextDiagramHelperUnitTest {
 	
 	StateTextDiagramHelper stateTextDiagramHelper = new StateTextDiagramHelper();
 	

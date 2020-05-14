@@ -89,6 +89,7 @@ public class StateTree {
 	}
 	
 	public ArrayList<Node> getNodeAndAllDescendants(Node parent) {
+		if (!this.nodes.contains(parent)) return null;
 		ArrayList<Node> allDescendants = new ArrayList<Node>();
 		if (parent.visible) allDescendants.add(parent);
 		for (Node node : nodes) {

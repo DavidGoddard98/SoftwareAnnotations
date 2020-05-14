@@ -1,4 +1,4 @@
-package plantuml.statemachine.generation;
+
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -205,6 +205,16 @@ public class StateTreeTest {
 		stateTree.addNode(stateTree.root, conditionalNode);
 
 		assertEquals(unconditionalNode, stateTree.findLastUnconditionalState());
+	}
+	
+	@Test
+	public void checkGetNodeAndAllDescendantsReturnsNullIfNodeDoesntExistInTree() {
+		initializeTree();
+		ArrayList<Node> expected = new ArrayList<Node>(
+	            Arrays.asList(stateTree.root)
+	                        
+				);
+		assertEquals(expected, stateTree.getNodeAndAllDescendants(stateTree.root));
 	}
 	
 	@Test

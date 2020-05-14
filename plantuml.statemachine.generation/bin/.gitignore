@@ -3,3 +3,8 @@
 /linkOpener/
 /plantuml/
 /utils/
+/EventTest.class
+/NodeTest.class
+/StateTreeTest.class
+/UnitTestSuite.class
+/StateTextDiagramHelperUnitTest.class
