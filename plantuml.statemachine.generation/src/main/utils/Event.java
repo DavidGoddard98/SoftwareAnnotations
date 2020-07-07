@@ -25,10 +25,7 @@ public class Event {
 	public void setLineEnd(int charEnd) {
 		this.multiLineEnd = charEnd;
 	}
-	
-	public void printTest() {
-		System.out.println("printest");
-	}
+
 	
 
 }

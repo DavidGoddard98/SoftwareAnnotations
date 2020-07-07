@@ -45,7 +45,7 @@ public class StateLinkOpener implements ILinkOpener {
 	 * are highlighted - with this also being reflected in the diagram.
 	 * @param link - see above
 	 */
-	private void linkBackState(String link) {
+	public static void linkBackState(String link) {
 		try {
 			
 			String linkToArray[] = link.split("#");
@@ -110,7 +110,7 @@ public class StateLinkOpener implements ILinkOpener {
 	 * @param charStart - the firstChar of the matched marker
 	 * @return - IMarker - the marker to be opened
 	 */
-	private IMarker createCursorMarker(IResource root, int markerLine, String path, int charStart) throws CoreException {
+	private static IMarker createCursorMarker(IResource root, int markerLine, String path, int charStart) throws CoreException {
 		IMarker marker = root.createMarker("FSM.MARKER");
 		marker.setAttribute(IMarker.MESSAGE, "");
 		marker.setAttribute(IMarker.LINE_NUMBER, markerLine);

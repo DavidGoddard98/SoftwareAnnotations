@@ -2,6 +2,7 @@
 package plantuml.statemachine.generation;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -54,7 +55,58 @@ public class StateTextDiagramHelper  {
 		this.plantMarkerKey = plantMarkerKey;
 	}
 	
+	private static ArrayList<String> operators = new ArrayList<String>(
+            Arrays.asList("==",
+                          "!=",
+                          ">",
+                          "<",
+                          ">=",
+                          "<=")
+    );
+	
+	public static String negateCondition(String string) {
+ 		StringBuilder negation = new StringBuilder();
+ 		String tmp = "p";
+ 		negation.append(string);
+ 		for (int j=0; j<string.length(); j++) {
+ 			String c = String.valueOf(string.charAt(j));
+ 			String oldCAndNewC = tmp + c;
+ 			if (operators.contains(c)) {
+ 				if (c.equals(">") && !(String.valueOf(string.charAt(j+1)).equals("="))) {
+ 					negation.replace(j, j+1, "<=");
+ 					break;
+ 				}
+ 				else if (c.equals("<") && !(String.valueOf(string.charAt(j+1)).equals("="))) {
+ 					negation.replace(j, j+1, ">=");
+ 					break;
+ 				}
+ 			} else if (operators.contains(oldCAndNewC)) {
+ 				String negatedRelation = negateRelation(oldCAndNewC);
+ 				negation.replace(j-1, j+1, negatedRelation);
+ 				
+ 			}
+ 			tmp = c;
+ 		}
+ 		if (negation.toString().equals(string)) { //no relational operator found
+ 			if (string.contains("!")) {
+        return string.replaceAll("!", "");
+      } else {
+ 			negation.insert(0, "!(");
+ 			negation.append(")");
+      }
+    }
+ 		return negation.toString();
 
+	}
+
+ 	private static String negateRelation(String relation) {
+ 		if (relation.equals("==")) return "!=";
+ 		else if (relation.equals("!=")) return "==";
+ 		else if (relation.equals(">=")) return "<";
+ 		else  return ">";
+ 	}
+ 	
+ 	
 	
 
 	/**
@@ -68,7 +120,7 @@ public class StateTextDiagramHelper  {
 	 * @param 	String - the line as seen in the editor
 	 * @return	String - null if the line is not a diagram descriptor, else return the line without the '//FSM:'
 	 */
-	protected static String stateDescriptor(String line) {
+	public static String stateDescriptor(String line) {
 		
 	    String theLine = line.replaceAll("\\s+", "").toLowerCase();
 	    
@@ -196,8 +248,11 @@ public class StateTextDiagramHelper  {
 				stateReference = new StateReference(line, editorLine, lineNum, charStart, charEnd);
 				
 			} else if (line.contains(":")) {
-				index = line.indexOf(":") - 1;
+				index = line.indexOf(":");
 				stateName = line.substring(0, index).trim();
+				System.out.println();
+				System.out.println();
+				System.out.println("STATE NAME: " + stateName);
 				charStart = markerRegion.getOffset();
 				if (multiLineEnd == -1) {
 					charEnd = markerRegion.getOffset() + markerRegion.getLength();
@@ -397,12 +452,12 @@ public class StateTextDiagramHelper  {
 	}
 	
 	//Link from the editor to the diagram for states
-	protected String forwardStateLink(String stateName) {
+	public String forwardStateLink(String stateName) {
 		return "state " + stateName + " #Cyan";
 	}
 
 	//Link from the editor to the diagram for transitions
-	protected String forwardTransitionLink(String selectedLine) {
+	public String forwardTransitionLink(String selectedLine) {
 		String colorTransition = "";
 		int indexOfArrow = selectedLine.indexOf("-");
 		String theArrow = selectedLine.substring(indexOfArrow+1, indexOfArrow +2);
@@ -484,7 +539,7 @@ public class StateTextDiagramHelper  {
 	
 	
 	//A key is created for every diagram text line and if it doesnt exist then a marker of that line and the relevant positions is created.
-	protected void createKey(StateReference stateReference) throws CoreException {
+	public void createKey(StateReference stateReference) throws CoreException {
 		
 		String theLine = stateReference.editorLine;
 		int lineNum = stateReference.lineNum;
@@ -724,10 +779,11 @@ public class StateTextDiagramHelper  {
 				} 
 
 				//Color the transitions on the diagram in the same colors you colored the transitions in the editor
-				String colorTransition = forwardTransitionLink(stateReference.theLine);
-				appendTextualDiagram(stateDiagram, stateName, backwardTransitionLink(this.stateDiagram, colorTransition, lineNum, stateReference.theLine) + "\n");
-				stateDiagram.addedTransitions.add(theLine);
-				stateDiagram.colorCounter++;
+				if (!this.stateDiagram.addedTransitions.contains(theLine)) {
+					String colorTransition = forwardTransitionLink(stateReference.theLine);
+					appendTextualDiagram(stateDiagram, stateName, backwardTransitionLink(this.stateDiagram, colorTransition, lineNum, stateReference.theLine) + "\n");
+					stateDiagram.addedTransitions.add(theLine);
+				}
 				
 			} else {
 				charStart = stateReference.charStart;
@@ -760,7 +816,7 @@ public class StateTextDiagramHelper  {
 	
 	
 	//Clears all of the highlights in the editor
-	protected void removeHighlights(IResource resource) {
+	public void removeHighlights(IResource resource) {
 		try {
 			IMarker[] markers = resource.findMarkers("FSM.State.Highlight", true, IResource.DEPTH_INFINITE);
 			for (IMarker m : markers) {
@@ -784,7 +840,7 @@ public class StateTextDiagramHelper  {
 	 * @param editorInput  - the active editor
 	 * @return - IResource root (used for marker creation primarily)
 	 */
-	protected static IResource getRoot(IEditorInput editorInput) { 
+	public static IResource getRoot(IEditorInput editorInput) { 
 		IPath path = ((IFileEditorInput) editorInput).getFile().getFullPath();
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot wsRoot = workspace.getRoot();
