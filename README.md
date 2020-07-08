@@ -14,5 +14,25 @@ Below, an overview of the results and uses of the plugin will be illustrated. Fo
 
 # The plugin
 
+Undeniably, the most useful feature of the plugin is the automatic generation of a state machine diagram when given state-based code. 
+
+An aspect that stood out to me when reading state-based code when designing this plugin was that it can be difficult to relate components of a state-machine to the aspects of the software it illustrates. This prompted me to implement a feature that constructs links between the two via navigating the user between them in the hope that this would improve clarity. The results of this were more beneficial than anticipated. 
+
+# Installation
+
+PlantUML for Eclipse must be installed - http://hallvard.github.io/plantuml/
+
+This plugin also requires GraphViz to be installed, you can install this here - https://graphviz.org/download/. You must then link the dot executable to Eclipse via the PlantUML preference page. 
+
+Then simply install my plugin - statemachine.generation.site
+
+To generate a diagram you must insert the state-based code between the following statements:
+
+@start_OSM_generation
+//Insert code here
+@end_OSM_generation
+
+Then, if the PlantUML view is open in Eclispe, a diagram will be automatically generated for you.
+
 
 
