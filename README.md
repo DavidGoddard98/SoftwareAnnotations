@@ -10,7 +10,7 @@ The goal behind the plugin made in this project is to simplyify the complexities
 * Linking between components in a diagram and lines of code (and vice versa) via navigation (see below).
 * Automatic generation of a state-machine diagram based on state-based code. 
 
-Below, an overview of the results and uses of the plugin will be illustrated. For a substantially more detailed examination that stretches from research into exisiting tools, all the way to the design and implementation of the plugin, see the attached thesis (*****).
+Below, an overview of the results and uses of the plugin will be illustrated. For a substantially more detailed examination that stretches from research into exisiting tools, all the way to the design and implementation of the plugin, see the attached thesis 'Annotations_of_Software.pdf'.
 
 # The plugin
 
