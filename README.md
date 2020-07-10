@@ -18,14 +18,18 @@ Undeniably, the most useful feature of the plugin is the automatic generation of
 
 <br>
 <div align = "center">
-  <img src="images/eclipsevie.PNG" width="500"/>
+  <img src="images/eclipsevie.PNG" width="750"/>
 </div>
 <br>
 
+As shown, this provides the developer with an easy way to comprehend the code they are writing/reading within the same environment.
 
-As shown, this provides the developer with an easy way to comprehend the code they are writing/reading within the same environment. 
+As can be seen in the figure above, state declerations must be prefaced with 'valid_states'. *It should be noted that this is the only requirement the user must satisfy within their code to enable the diagrammatic generation to occur.* 
 
-A simple demonstration of this is shown below:
+Perhaps of further interest is the split from State2 which either goes to State3 or to exit. Without going into too much of the theory (see the PDF attached for more), this occurs due to the if statement, which acts as a guard for State3's behaviour. If the conditional is met (in this case if the wind speed is above 50), then the systems behaviour is now encapsulated by State3, otherwise the system goes to the exit state.  
+
+I'm sure you're thinking - what if some of this hypothetical systems behaviour is guarded behind a plethora of nested conditionals? Utilizing a tree structure and a fairly complex algorithm for traversal, the plugin is able to autonomously generate a diagram which accurately depicts the logic:
+
 
 
 
