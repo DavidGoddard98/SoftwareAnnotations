@@ -18,7 +18,7 @@ Undeniably, the most useful feature of the plugin is the automatic generation of
 
 <br>
 <div align = "center">
-  <img src="images/eclipsevie.png" width="500"/>
+  <img src="images/eclipsevie.PNG" width="500"/>
 </div>
 <br>
 
