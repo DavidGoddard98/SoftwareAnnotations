@@ -14,6 +14,7 @@ Below, an overview of the results and uses of the plugin will be illustrated. Fo
 
 # The plugin
 
+### Automatic Generation of a Diagram
 Undeniably, the most useful feature of the plugin is the automatic generation of a state machine diagram when given state-based code. The generated diagram appears in a view within Eclipse next to the text editor for the users convenience:
 
 <br>
@@ -30,8 +31,12 @@ Perhaps of further interest is the split from State2 which either goes to State3
 
 I'm sure you're thinking - what if some of this hypothetical systems behaviour is guarded behind a plethora of nested conditionals? Utilizing a tree structure and a fairly complex algorithm for traversal, the plugin is able to autonomously generate a diagram which accurately depicts the logic:
 
+(pic of complex if statement)
+
+The plugin also has the capabilties of 
 
 
+### Linking between diagram and code
 
 An aspect that stood out to me when reading state-based code when designing this plugin was that it can be difficult to relate components of a state-machine to the aspects of the software it illustrates. This prompted me to implement a feature that constructs links between the two via navigating the user between them in the hope that this would improve clarity. The results of this were more beneficial than anticipated. 
 
