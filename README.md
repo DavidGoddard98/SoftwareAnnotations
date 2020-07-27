@@ -37,11 +37,9 @@ The plugin provides the functionality of inferring the following programming pra
 * Switch statements
 * While loops
 
-Suffice to say that a combination of these working in conjunction can also be inferred. 
-
 ### Conditionals
 
-As shown previously, simple if statements can be detected, yet in addition to this, if/else and if/else if/ else can also be implied:
+As shown previously, simple if statements can be detected. Additionally, if/else and if/else if/ else statements can also be implied:
 
 #### If/Else
 
@@ -91,7 +89,7 @@ As these are commonplace within state-based systems it made sense to provide the
 
 ### While loops
 
-Again, loops are an integral component of state-based systems as behaviour is often constantly monitored:
+Again, loops are an integral component of state-based systems as behaviour is often constantly monitored. See below the same system as shown under the 'action' header but this time with a while loop around states 1 and 2:
 
 <br>
 <div align = "center">
@@ -99,21 +97,79 @@ Again, loops are an integral component of state-based systems as behaviour is of
 </div>
 <br>
 
-*Note: There are no requirements for this peiece of functionality.*
+*Note: There are no requirements for this piece of functionality.*
 
 ### Removing undesired inference
 
 Like with any software there is bound to be bugs. Although rare, this is particually true with this plugin because various assumptions must be made. To overcome this, there are built-in commands to remove unwanted inference. 
 
 To remove a state entirely (along with all transitions flowing in/out):
+```
   //FSM: REMOVE - stateName
-
+```
 To remove a single transition:
+```
   //FSM: REMOVE - state -> anotherState : thelabel
+```
 
 ## <div align="center"> Linking between diagram and code </div>
 
-An aspect that stood out to me when reading state-based code when designing this plugin was that it can be difficult to relate components of a state-machine to the aspects of the software it illustrates. This prompted me to implement a feature that constructs links between the two via navigating the user between them in the hope that this would improve clarity. The results of this were more beneficial than anticipated. 
+It is undeniable that reading state-based code and thereafter comprehending it can be a challenging task. While a diagram representing the system (such as a state-machine) may be available to the developer, releating components such as states and transitions to the sections of the code they depict can be difficult. For this reason, it was clear that any plugin made to enhance comprehension of state-based code should tackle this problem head on. 
+
+The solution used in this plugin is to automatically construct bi-directional links between both the components of the generated state-machine and the code it represents. The final implementation allows users to click on a component in a state-machine to be directed to the line of code which describes it. In a similar way, if the user clicks on a line of code that describes a component, they will be navigated to the component (i.e a state) via it being highlighted. 
+
+To demonstrate this functionality the following simple state-machine will be used:
+
+<br>
+<div align = "center">
+  <img src="images/simpleState.PNG" width="600"/>
+</div>
+<br>
+
+### Linking between states
+The following is the result of clicking on the State1 component in the diagram:
+
+<br>
+<div align = "center">
+  <img src="images/colorStateCode.PNG" width="600"/>
+</div>
+<br>
+
+As shown the users cursor is navigated to the line declaring the state and it is highlighted blue.
+
+Now shown is the result of clicking on that same line:
+
+<br>
+<div align = "center">
+  <img src="images/colorStatePic.PNG" width="600"/>
+</div>
+<br>
+
+As you can see State1 is highlighted to reinforce that this state relates to the line just selected.
+
+### Linking between transitions
+
+The following is the result of clicking on the transition component between State1 and State2:
+
+<br>
+<div align = "center">
+  <img src="images/colorTransCode.PNG" width="600"/>
+</div>
+<br>
+
+This time the transition (the guard) is highlighted green so the user can easily differentiate between states and transitions. Note also that the state that is guarded by the transition is highlighted.
+
+Now shown is the result of clicking on the same line highlighted above:
+
+<br>
+<div align = "center">
+  <img src="images/colorTransPic.PNG" width="600"/>
+</div>
+<br>
+
+Like before, the component (this time the transition), is highlighted in the diagram. 
+
+
 
 # Installation
 
