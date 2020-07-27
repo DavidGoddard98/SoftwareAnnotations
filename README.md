@@ -14,7 +14,8 @@ Below, an overview of the results and uses of the plugin will be illustrated. Fo
 
 # The plugin
 
-### Automatic Generation of a Diagram
+## <div align="center"> Automatic Generation of a Diagram </div>
+
 Undeniably, the most useful feature of the plugin is the automatic generation of a state machine diagram when given state-based code. The generated diagram appears in a view within Eclipse next to the text editor for the users convenience:
 
 <br>
@@ -27,16 +28,90 @@ As shown, this provides the developer with an easy way to comprehend the code th
 
 As can be seen in the figure above, state declerations must be prefaced with 'valid_states'. *It should be noted that this is the only requirement the user must satisfy within their code to enable the diagrammatic generation to occur.* 
 
-Perhaps of further interest is the split from State2 which either goes to State3 or to exit. Without going into too much of the theory (see the PDF attached for more), this occurs due to the if statement, which acts as a guard for State3's behaviour. If the conditional is met (in this case if the wind speed is above 50), then the systems behaviour is now encapsulated by State3, otherwise the system goes to the exit state.  
+### Functionality 
+
+The plugin provides the functionality of inferring the following programming practices:
+
+* Conditionals (guards)
+* Actions
+* Switch statements
+* While loops
+
+Suffice to say that a combination of these working in conjunction can also be inferred. 
+
+### Conditionals
+
+As shown previously, simple if statements can be detected, yet in addition to this, if/else and if/else if/ else can also be implied:
+
+#### If/Else
+
+<br>
+<div align = "center">
+  <img src="images/ifelse.PNG" width="500"/>
+</div>
+<br>
+
+#### If/Else if*/Else
+
+<br>
+<div align = "center">
+  <img src="images/ifelseifelse.PNG" width="600"/>
+</div>
+<br>
 
 I'm sure you're thinking - what if some of this hypothetical systems behaviour is guarded behind a plethora of nested conditionals? Utilizing a tree structure and a fairly complex algorithm for traversal, the plugin is able to autonomously generate a diagram which accurately depicts the logic:
 
-(pic of complex if statement)
+<br>
+<div align = "center">
+  <img src="images/compelx.PNG" width="850"/>
+</div>
+<br>
 
-The plugin also has the capabilties of 
+### Actions 
 
+As well as inferring guards the plugin can also detect actions, which taken in the context of state machines, essentially means method calls that affect an objects behaviour. For instance, if the system encapsulated an autopilot for a plane and the method was called to alter the rudder roatation, it would be known as an action. 
 
-### Linking between diagram and code
+To detect an action, the method decleration simply needs to be inserted within the auto-generation statements (@start_OSM_generation). Then, whenever the method is called within the flow of the system it will be inferred appropriately:
+
+<br>
+<div align = "center">
+  <img src="images/action.PNG" width="500"/>
+</div>
+<br>
+
+### Switch statements
+
+As these are commonplace within state-based systems it made sense to provide the functionality to infer them. In order to do so (and to ensure consistency) you must use the variable 'state' as the variable you switch like so:
+
+<br>
+<div align = "center">
+  <img src="images/switch.PNG" width="500"/>
+</div>
+<br>
+
+### While loops
+
+Again, loops are an integral component of state-based systems as behaviour is often constantly monitored:
+
+<br>
+<div align = "center">
+  <img src="images/while.PNG" width="600"/>
+</div>
+<br>
+
+*Note: There are no requirements for this peiece of functionality.*
+
+### Removing undesired inference
+
+Like with any software there is bound to be bugs. Although rare, this is particually true with this plugin because various assumptions must be made. To overcome this, there are built-in commands to remove unwanted inference. 
+
+To remove a state entirely (along with all transitions flowing in/out):
+  //FSM: REMOVE - stateName
+
+To remove a single transition:
+  //FSM: REMOVE - state -> anotherState : thelabel
+
+## <div align="center"> Linking between diagram and code </div>
 
 An aspect that stood out to me when reading state-based code when designing this plugin was that it can be difficult to relate components of a state-machine to the aspects of the software it illustrates. This prompted me to implement a feature that constructs links between the two via navigating the user between them in the hope that this would improve clarity. The results of this were more beneficial than anticipated. 
 
@@ -53,6 +128,8 @@ To generate a diagram you must insert the state-based code between the following
 @start_OSM_generation
 //Insert code here
 @end_OSM_generation
+
+*OSM in this context stands for Object state machine*
 
 Then, if the PlantUML view is open in Eclispe, a diagram will be automatically generated for you.
 
